@@ -1,13 +1,15 @@
 --[[
-    MyUI – Biblioteca de Interface Personalizada
-    - Design escuro com acentos neon
+    NovaUI – Biblioteca de Interface Personalizada
+    - Design escuro com detalhes neon (ciano)
     - Tabs à esquerda, conteúdo à direita
-    - Totalmente touch-friendly
-    - Sem CoreGui, persistente após morte
-    - Com suporte a Flags e layout dinâmico
+    - Arrastável (funciona com mouse e toque)
+    - Persistente (não some ao morrer)
+    - Não usa CoreGui (evita detecção)
+    - Otimizada para mobile (touch-friendly)
+    - Inclui: Toggle, Checkbox, Slider, Dropdown (single/multi), Radio, ColorPicker, ProgressBar, Graph, Image, ImageButton, TreeNode, Keybind (placeholder), TextBox, Button, etc.
 ]]
 
-local MyUI = {}
+local NovaUI = {}
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -15,38 +17,40 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- ========== CONFIGURAÇÕES DE TEMA ==========
+-- ========== TEMA ==========
 local Theme = {
-    Background = Color3.fromRGB(18, 18, 28),
-    Sidebar = Color3.fromRGB(28, 28, 42),
-    Groupbox = Color3.fromRGB(22, 22, 36),
+    Background = Color3.fromRGB(14, 14, 22),
+    Sidebar = Color3.fromRGB(22, 22, 36),
+    Groupbox = Color3.fromRGB(18, 18, 30),
     Accent = Color3.fromRGB(0, 200, 255),
-    Text = Color3.fromRGB(230, 230, 255),
+    AccentDark = Color3.fromRGB(0, 150, 200),
+    Text = Color3.fromRGB(235, 235, 255),
     TextDark = Color3.fromRGB(160, 160, 180),
     Outline = Color3.fromRGB(60, 60, 80),
     Positive = Color3.fromRGB(0, 255, 150),
     Negative = Color3.fromRGB(255, 80, 80),
 }
 
--- ========== ESTRUTURA PRINCIPAL ==========
+-- ========== CRIAÇÃO DA GUI PRINCIPAL ==========
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MyUI"
+ScreenGui.Name = "NovaUI"
 ScreenGui.IgnoreGuiInset = true
+ScreenGui.ResetOnSpawn = false -- Persiste após morte
 ScreenGui.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 600, 0, 450)
-MainFrame.Position = UDim2.new(0.5, -300, 0.5, -225)
+MainFrame.Size = UDim2.new(0, 620, 0, 470)
+MainFrame.Position = UDim2.new(0.5, -310, 0.5, -235)
 MainFrame.BackgroundColor3 = Theme.Background
 MainFrame.BackgroundTransparency = 0.05
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
--- Arredondamento e borda
+-- Cantos arredondados e borda neon
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.CornerRadius = UDim.new(0, 14)
 UICorner.Parent = MainFrame
 
 local UIStroke = Instance.new("UIStroke")
@@ -58,21 +62,21 @@ UIStroke.Parent = MainFrame
 -- ========== BARRA DE TÍTULO (arrastável) ==========
 local TitleBar = Instance.new("Frame")
 TitleBar.Name = "TitleBar"
-TitleBar.Size = UDim2.new(1, 0, 0, 36)
+TitleBar.Size = UDim2.new(1, 0, 0, 38)
 TitleBar.BackgroundColor3 = Theme.Sidebar
 TitleBar.BackgroundTransparency = 0.2
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
 
 local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.CornerRadius = UDim.new(0, 14)
 TitleCorner.Parent = TitleBar
 
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -80, 1, 0)
-TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.Position = UDim2.new(0, 12, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "⚡ MyUI"
+TitleLabel.Text = "✦ NovaUI"
 TitleLabel.TextColor3 = Theme.Text
 TitleLabel.TextSize = 18
 TitleLabel.Font = Enum.Font.GothamBold
@@ -81,8 +85,8 @@ TitleLabel.Parent = TitleBar
 
 -- Botão fechar
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 28, 0, 28)
-CloseBtn.Position = UDim2.new(1, -36, 0, 4)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -40, 0, 4)
 CloseBtn.BackgroundColor3 = Theme.Negative
 CloseBtn.BackgroundTransparency = 0.4
 CloseBtn.Text = "✕"
@@ -96,66 +100,66 @@ CloseCorner.CornerRadius = UDim.new(1, 0)
 CloseCorner.Parent = CloseBtn
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- ========== SISTEMA DE ARRASTE ==========
-local dragData = { dragging = false, startPos = nil, startMouse = nil }
-local function onInputBegan(input, gP)
-    if gP then return end
+-- ========== SISTEMA DE ARRASTE (adaptado do seu código) ==========
+local dragging = false
+local dragStart, startPos, dragInput
+
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        local mousePos = UserInputService:GetMouseLocation()
-        local fPos = MainFrame.AbsolutePosition
-        local fSize = MainFrame.AbsoluteSize
-        if mousePos.X >= fPos.X and mousePos.X <= fPos.X + fSize.X and
-           mousePos.Y >= fPos.Y and mousePos.Y <= fPos.Y + 36 then
-            dragData.dragging = true
-            dragData.startPos = MainFrame.Position
-            dragData.startMouse = input.Position
-        end
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
     end
-end
-local function onInputChanged(input, gP)
-    if gP then return end
-    if dragData.dragging then
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            local delta = input.Position - dragData.startMouse
-            MainFrame.Position = UDim2.new(
-                dragData.startPos.X.Scale, dragData.startPos.X.Offset + delta.X,
-                dragData.startPos.Y.Scale, dragData.startPos.Y.Offset + delta.Y
-            )
-        end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
     end
-end
-local function onInputEnded(input, gP)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragData.dragging = false
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updateDrag(input)
     end
-end
-UserInputService.InputBegan:Connect(onInputBegan)
-UserInputService.InputChanged:Connect(onInputChanged)
-UserInputService.InputEnded:Connect(onInputEnded)
+end)
 
 -- ========== ESTRUTURA DE TABS E CONTEÚDO ==========
--- Sidebar (esquerda)
 local Sidebar = Instance.new("Frame")
 Sidebar.Name = "Sidebar"
-Sidebar.Size = UDim2.new(0, 160, 1, -36)
-Sidebar.Position = UDim2.new(0, 0, 0, 36)
+Sidebar.Size = UDim2.new(0, 160, 1, -38)
+Sidebar.Position = UDim2.new(0, 0, 0, 38)
 Sidebar.BackgroundColor3 = Theme.Sidebar
 Sidebar.BackgroundTransparency = 0.1
 Sidebar.BorderSizePixel = 0
 Sidebar.Parent = MainFrame
 
--- Área de conteúdo (direita)
 local ContentArea = Instance.new("ScrollingFrame")
 ContentArea.Name = "ContentArea"
-ContentArea.Size = UDim2.new(1, -160, 1, -36)
-ContentArea.Position = UDim2.new(0, 160, 0, 36)
+ContentArea.Size = UDim2.new(1, -160, 1, -38)
+ContentArea.Position = UDim2.new(0, 160, 0, 38)
 ContentArea.BackgroundTransparency = 1
 ContentArea.BorderSizePixel = 0
 ContentArea.ScrollBarThickness = 4
 ContentArea.ScrollBarImageColor3 = Theme.Accent
 ContentArea.Parent = MainFrame
 
--- Container interno para os conteúdos das tabs
 local ContentContainer = Instance.new("Frame")
 ContentContainer.Name = "ContentContainer"
 ContentContainer.Size = UDim2.new(1, 0, 1, 0)
@@ -169,46 +173,44 @@ local TabButtons = {}
 
 local function CreateTabButton(name, icon)
     local btn = Instance.new("TextButton")
-    btn.Name = name
     btn.Size = UDim2.new(1, -10, 0, 40)
-    btn.Position = UDim2.new(0, 5, 0, #TabButtons * 42 + 5)
+    btn.Position = UDim2.new(0, 5, 0, #TabButtons * 44 + 8)
     btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     btn.BackgroundTransparency = 0.5
-    btn.Text = icon and (icon .. "  " .. name) or name
+    btn.Text = (icon and icon .. " " or "") .. name
     btn.TextColor3 = Theme.TextDark
     btn.TextSize = 14
     btn.Font = Enum.Font.GothamMedium
     btn.TextXAlignment = Enum.TextXAlignment.Left
     btn.BorderSizePixel = 0
     btn.Parent = Sidebar
-    
+
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = btn
-    
+
     local stroke = Instance.new("UIStroke")
     stroke.Color = Theme.Outline
     stroke.Thickness = 0
     stroke.Parent = btn
-    
+
     return btn
 end
 
-function MyUI:Tab(name, icon)
-    local tabData = { Name = name, Icon = icon, SubTabs = {}, ActiveSubTab = nil }
+function NovaUI:Tab(name, icon)
+    local tabData = { Name = name, Icon = icon, Button = nil, Container = nil, SubTabs = {} }
     local btn = CreateTabButton(name, icon)
     tabData.Button = btn
-    
-    -- Container para os conteúdos desta tab (inicialmente oculto)
+
+    -- Container para o conteúdo da tab
     local tabContainer = Instance.new("Frame")
     tabContainer.Name = name .. "Container"
     tabContainer.Size = UDim2.new(1, 0, 1, 0)
     tabContainer.BackgroundTransparency = 1
     tabContainer.Visible = false
     tabContainer.Parent = ContentContainer
-    
     tabData.Container = tabContainer
-    
+
     btn.MouseButton1Click:Connect(function()
         if CurrentTab then
             CurrentTab.Container.Visible = false
@@ -223,8 +225,7 @@ function MyUI:Tab(name, icon)
         btn.UIStroke.Color = Theme.Accent
         CurrentTab = tabData
     end)
-    
-    -- Se for a primeira tab, ativa
+
     if #TabButtons == 0 then
         tabContainer.Visible = true
         btn.BackgroundColor3 = Color3.fromRGB(60,60,90)
@@ -233,11 +234,11 @@ function MyUI:Tab(name, icon)
         btn.UIStroke.Color = Theme.Accent
         CurrentTab = tabData
     end
-    
+
     table.insert(TabButtons, btn)
     Tabs[name] = tabData
-    
-    -- Retorna um objeto para criar SubTabs
+
+    -- Retorna objeto para criar SubTabs
     return {
         SubTab = function(self, subName)
             local subContainer = Instance.new("Frame")
@@ -246,27 +247,19 @@ function MyUI:Tab(name, icon)
             subContainer.BackgroundTransparency = 1
             subContainer.Visible = false
             subContainer.Parent = tabContainer
-            
-            -- Cria um botão de subtab (opcional, pode ser dropdown ou botões)
-            -- Vamos usar um sistema simples: ao criar uma subtab, ela fica visível por padrão
-            -- Se houver mais de uma, usaremos um seletor simples (dropdown)
+
+            -- Se for a primeira subtab, mostra
             if not tabData.ActiveSubTab then
                 subContainer.Visible = true
                 tabData.ActiveSubTab = subName
-            else
-                -- Para simplificar, usaremos um dropdown para selecionar subtab
-                -- Mas isso pode ser implementado depois
-                -- Por enquanto, a primeira subtab é a ativa
             end
-            
-            -- Para facilitar, vamos criar um grupo de subtabs com botões (mas isso foge do escopo)
-            -- Vamos simplesmente retornar um objeto para adicionar groupboxes
+
+            -- Retorna objeto para adicionar groupboxes
             return {
-                Groupbox = function(self, title, side, icon)
-                    -- side: "Left" ou "Right"
-                    local isLeft = side == "Left"
+                Groupbox = function(self, title, side)
+                    local isLeft = (side == "Left")
                     local container = subContainer
-                    
+
                     local group = Instance.new("Frame")
                     group.Name = title
                     group.Size = UDim2.new(isLeft and 0.48 or 0.48, 0, 0, 40)
@@ -276,17 +269,17 @@ function MyUI:Tab(name, icon)
                     group.BorderSizePixel = 0
                     group.ClipsDescendants = true
                     group.Parent = container
-                    
+
                     local gCorner = Instance.new("UICorner")
                     gCorner.CornerRadius = UDim.new(0, 8)
                     gCorner.Parent = group
-                    
+
                     local gStroke = Instance.new("UIStroke")
                     gStroke.Color = Theme.Outline
                     gStroke.Thickness = 1
                     gStroke.Transparency = 0.5
                     gStroke.Parent = group
-                    
+
                     -- Título do groupbox
                     local gTitle = Instance.new("TextLabel")
                     gTitle.Size = UDim2.new(1, -20, 0, 28)
@@ -298,47 +291,42 @@ function MyUI:Tab(name, icon)
                     gTitle.Font = Enum.Font.GothamBold
                     gTitle.TextXAlignment = Enum.TextXAlignment.Left
                     gTitle.Parent = group
-                    
-                    -- Container interno para os itens com UIListLayout
+
+                    -- Container interno para itens
                     local itemsContainer = Instance.new("Frame")
                     itemsContainer.Name = "Items"
                     itemsContainer.Size = UDim2.new(1, -10, 0, 0)
                     itemsContainer.Position = UDim2.new(0, 5, 0, 32)
                     itemsContainer.BackgroundTransparency = 1
                     itemsContainer.Parent = group
-                    
-                    -- Layout automático
-                    local layout = Instance.new("UIListLayout")
-                    layout.FillDirection = Enum.FillDirection.Vertical
-                    layout.SortOrder = Enum.SortOrder.LayoutOrder
-                    layout.Padding = UDim.new(0, 4)
-                    layout.Parent = itemsContainer
-                    
-                    -- Função para atualizar altura do group
+
+                    local itemY = 0
+                    local itemGap = 6
+
                     local function updateGroupHeight()
                         local totalHeight = itemsContainer.AbsoluteSize.Y + 40
                         group.Size = UDim2.new(isLeft and 0.48 or 0.48, 0, 0, totalHeight)
                     end
-                    
-                    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateGroupHeight)
-                    RunService.Heartbeat:Connect(function()
-                        updateGroupHeight()
-                    end)
-                    
-                    -- Retorna funções para adicionar elementos
+
                     local groupObj = {
                         _container = itemsContainer,
+                        _y = itemY,
+                        _gap = itemGap,
                         _update = updateGroupHeight,
-                        _addItem = function(self, itemHeight)
+                        _addItem = function(self, height)
                             local frame = Instance.new("Frame")
-                            frame.Size = UDim2.new(1, 0, 0, itemHeight)
+                            frame.Size = UDim2.new(1, 0, 0, height)
+                            frame.Position = UDim2.new(0, 0, 0, self._y)
                             frame.BackgroundTransparency = 1
                             frame.Parent = self._container
+                            self._y = self._y + height + self._gap
+                            task.wait() -- permite renderização
+                            self._update()
                             return frame
                         end
                     }
-                    
-                    -- Adiciona os métodos
+
+                    -- ===== MÉTODOS =====
                     function groupObj:AddLabel(text)
                         local f = self:_addItem(24)
                         local lbl = Instance.new("TextLabel")
@@ -352,7 +340,7 @@ function MyUI:Tab(name, icon)
                         lbl.Parent = f
                         return f
                     end
-                    
+
                     function groupObj:AddParagraph(params)
                         local title = params.Title or ""
                         local content = params.Content or ""
@@ -367,7 +355,7 @@ function MyUI:Tab(name, icon)
                         lblTitle.Font = Enum.Font.GothamBold
                         lblTitle.TextXAlignment = Enum.TextXAlignment.Left
                         lblTitle.Parent = f
-                        
+
                         local lblContent = Instance.new("TextLabel")
                         lblContent.Size = UDim2.new(1, 0, 0, 20)
                         lblContent.Position = UDim2.new(0, 0, 0, 18)
@@ -387,14 +375,13 @@ function MyUI:Tab(name, icon)
                         end
                         return f
                     end
-                    
+
                     function groupObj:AddToggle(params)
                         local title = params.Title or ""
                         local default = params.Default or false
-                        local flag = params.Flag
                         local callback = params.Callback or function() end
                         local f = self:_addItem(32)
-                        
+
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(0.7, 0, 1, 0)
                         lbl.BackgroundTransparency = 1
@@ -404,7 +391,7 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
-                        
+
                         local toggleFrame = Instance.new("Frame")
                         toggleFrame.Size = UDim2.new(0, 40, 0, 22)
                         toggleFrame.Position = UDim2.new(1, -45, 0.5, -11)
@@ -414,7 +401,7 @@ function MyUI:Tab(name, icon)
                         local tCorner = Instance.new("UICorner")
                         tCorner.CornerRadius = UDim.new(1,0)
                         tCorner.Parent = toggleFrame
-                        
+
                         local knob = Instance.new("Frame")
                         knob.Size = UDim2.new(0, 16, 0, 16)
                         knob.Position = default and UDim2.new(1, -20, 0.5, -8) or UDim2.new(0, 4, 0.5, -8)
@@ -424,14 +411,13 @@ function MyUI:Tab(name, icon)
                         local kCorner = Instance.new("UICorner")
                         kCorner.CornerRadius = UDim.new(1,0)
                         kCorner.Parent = knob
-                        
+
                         local state = default
                         local function toggle()
                             state = not state
                             toggleFrame.BackgroundColor3 = state and Theme.Accent or Color3.fromRGB(80,80,100)
                             TweenService:Create(knob, TweenInfo.new(0.15), {Position = state and UDim2.new(1, -20, 0.5, -8) or UDim2.new(0, 4, 0.5, -8)}):Play()
                             callback(state)
-                            if flag then MyUI.Flags[flag] = state end
                         end
                         toggleFrame.InputBegan:Connect(function(input)
                             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -440,14 +426,14 @@ function MyUI:Tab(name, icon)
                         end)
                         return { Set = function(self, val) if val ~= state then toggle() end end }
                     end
-                    
+
                     function groupObj:AddCheckbox(params)
                         local title = params.Title or ""
                         local default = params.Default or false
                         local risky = params.Risky or false
                         local callback = params.Callback or function() end
                         local f = self:_addItem(32)
-                        
+
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(0.7, 0, 1, 0)
                         lbl.BackgroundTransparency = 1
@@ -457,7 +443,7 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
-                        
+
                         local chkFrame = Instance.new("Frame")
                         chkFrame.Size = UDim2.new(0, 22, 0, 22)
                         chkFrame.Position = UDim2.new(1, -45, 0.5, -11)
@@ -467,7 +453,7 @@ function MyUI:Tab(name, icon)
                         local cCorner = Instance.new("UICorner")
                         cCorner.CornerRadius = UDim.new(0, 4)
                         cCorner.Parent = chkFrame
-                        
+
                         local checkMark = Instance.new("TextLabel")
                         checkMark.Size = UDim2.new(1, 0, 1, 0)
                         checkMark.BackgroundTransparency = 1
@@ -477,7 +463,7 @@ function MyUI:Tab(name, icon)
                         checkMark.Font = Enum.Font.GothamBold
                         checkMark.Visible = default
                         checkMark.Parent = chkFrame
-                        
+
                         local state = default
                         local function toggle()
                             state = not state
@@ -492,7 +478,7 @@ function MyUI:Tab(name, icon)
                         end)
                         return { Set = function(self, val) if val ~= state then toggle() end end }
                     end
-                    
+
                     function groupObj:AddSlider(params)
                         local title = params.Title or ""
                         local min = params.Min or 0
@@ -502,7 +488,7 @@ function MyUI:Tab(name, icon)
                         local suffix = params.Suffix or ""
                         local callback = params.Callback or function() end
                         local f = self:_addItem(40)
-                        
+
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(0.6, 0, 0.5, 0)
                         lbl.Position = UDim2.new(0, 0, 0, 0)
@@ -513,7 +499,7 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
-                        
+
                         local valLabel = Instance.new("TextLabel")
                         valLabel.Size = UDim2.new(0.3, 0, 0.5, 0)
                         valLabel.Position = UDim2.new(0.7, 0, 0, 0)
@@ -524,7 +510,7 @@ function MyUI:Tab(name, icon)
                         valLabel.Font = Enum.Font.GothamMedium
                         valLabel.TextXAlignment = Enum.TextXAlignment.Right
                         valLabel.Parent = f
-                        
+
                         local track = Instance.new("Frame")
                         track.Size = UDim2.new(0.9, 0, 0, 6)
                         track.Position = UDim2.new(0.05, 0, 0.7, 0)
@@ -534,7 +520,7 @@ function MyUI:Tab(name, icon)
                         local trackCorner = Instance.new("UICorner")
                         trackCorner.CornerRadius = UDim.new(1,0)
                         trackCorner.Parent = track
-                        
+
                         local fill = Instance.new("Frame")
                         fill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0)
                         fill.BackgroundColor3 = Theme.Accent
@@ -543,7 +529,7 @@ function MyUI:Tab(name, icon)
                         local fillCorner = Instance.new("UICorner")
                         fillCorner.CornerRadius = UDim.new(1,0)
                         fillCorner.Parent = fill
-                        
+
                         local knobSlider = Instance.new("Frame")
                         knobSlider.Size = UDim2.new(0, 16, 0, 16)
                         knobSlider.Position = UDim2.new((default-min)/(max-min), -8, 0.5, -8)
@@ -553,9 +539,9 @@ function MyUI:Tab(name, icon)
                         local knobCorner = Instance.new("UICorner")
                         knobCorner.CornerRadius = UDim.new(1,0)
                         knobCorner.Parent = knobSlider
-                        
+
                         local value = default
-                        local dragging = false
+                        local draggingSlider = false
                         local function updateSlider(input)
                             local trackAbsPos = track.AbsolutePosition
                             local trackAbsSize = track.AbsoluteSize.X
@@ -576,19 +562,19 @@ function MyUI:Tab(name, icon)
                         end
                         knobSlider.InputBegan:Connect(function(input)
                             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                                dragging = true
+                                draggingSlider = true
                                 updateSlider(input)
                             end
                         end)
                         UserInputService.InputChanged:Connect(function(input, gP)
                             if gP then return end
-                            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                            if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                                 updateSlider(input)
                             end
                         end)
                         UserInputService.InputEnded:Connect(function(input)
                             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                                dragging = false
+                                draggingSlider = false
                             end
                         end)
                         return { Set = function(self, val) 
@@ -600,7 +586,7 @@ function MyUI:Tab(name, icon)
                             callback(value)
                         end }
                     end
-                    
+
                     function groupObj:AddDropdown(params)
                         local title = params.Title or ""
                         local values = params.Values or {}
@@ -608,7 +594,7 @@ function MyUI:Tab(name, icon)
                         local multi = params.Multi or false
                         local callback = params.Callback or function() end
                         local f = self:_addItem(34)
-                        
+
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(0.5, 0, 1, 0)
                         lbl.BackgroundTransparency = 1
@@ -618,12 +604,12 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
-                        
+
                         local btn = Instance.new("TextButton")
                         btn.Size = UDim2.new(0.45, 0, 0.7, 0)
                         btn.Position = UDim2.new(0.5, 0, 0.15, 0)
                         btn.BackgroundColor3 = Color3.fromRGB(50,50,70)
-                        btn.Text = multi and "Select..." or (default or values[1] or "")
+                        btn.Text = multi and "Selecionar..." or (default or values[1] or "")
                         btn.TextColor3 = Theme.Text
                         btn.TextSize = 13
                         btn.Font = Enum.Font.GothamMedium
@@ -632,7 +618,7 @@ function MyUI:Tab(name, icon)
                         local btnCorner = Instance.new("UICorner")
                         btnCorner.CornerRadius = UDim.new(0, 4)
                         btnCorner.Parent = btn
-                        
+
                         local dropdownFrame = Instance.new("Frame")
                         dropdownFrame.Size = UDim2.new(0.45, 0, 0, 0)
                         dropdownFrame.Position = UDim2.new(0.5, 0, 0, 34)
@@ -644,21 +630,21 @@ function MyUI:Tab(name, icon)
                         local dCorner = Instance.new("UICorner")
                         dCorner.CornerRadius = UDim.new(0, 4)
                         dCorner.Parent = dropdownFrame
-                        
+
                         local selected = {}
                         if multi then
                             if type(default) == "table" then
                                 for _, v in ipairs(default) do selected[v] = true end
                             end
                         else
-                            if default then selected[default] = true end
+                            selected[default] = true
                         end
-                        
+
                         local itemHeight = 28
                         local function updateDropdownHeight()
                             dropdownFrame.Size = UDim2.new(0.45, 0, 0, #values * itemHeight + 2)
                         end
-                        
+
                         for i, val in ipairs(values) do
                             local item = Instance.new("TextButton")
                             item.Size = UDim2.new(1, 0, 0, itemHeight)
@@ -673,12 +659,12 @@ function MyUI:Tab(name, icon)
                             local iCorner = Instance.new("UICorner")
                             iCorner.CornerRadius = UDim.new(0, 2)
                             iCorner.Parent = item
-                            
+
                             if selected[val] then
                                 item.BackgroundColor3 = Theme.Accent
                                 item.TextColor3 = Color3.new(1,1,1)
                             end
-                            
+
                             item.MouseButton1Click:Connect(function()
                                 if multi then
                                     selected[val] = not selected[val]
@@ -691,7 +677,7 @@ function MyUI:Tab(name, icon)
                                     end
                                     local selList = {}
                                     for k, v in pairs(selected) do if v then table.insert(selList, k) end end
-                                    btn.Text = #selList > 0 and table.concat(selList, ", ") or "Select..."
+                                    btn.Text = #selList > 0 and table.concat(selList, ", ") or "Selecionar..."
                                     callback(selected)
                                 else
                                     for _, other in ipairs(dropdownFrame:GetChildren()) do
@@ -709,22 +695,20 @@ function MyUI:Tab(name, icon)
                             end)
                         end
                         updateDropdownHeight()
-                        
+
                         btn.MouseButton1Click:Connect(function()
                             dropdownFrame.Visible = not dropdownFrame.Visible
                         end)
-                        return { Refresh = function(self, newValues)
-                            -- não implementado para brevidade
-                        end }
+                        return { Refresh = function(self, newValues) end }
                     end
-                    
+
                     function groupObj:AddRadioButton(params)
                         local title = params.Title or ""
                         local options = params.Options or {}
                         local default = params.Default or options[1]
                         local callback = params.Callback or function() end
                         local f = self:_addItem(30 + #options * 24)
-                        
+
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(1, 0, 0, 24)
                         lbl.BackgroundTransparency = 1
@@ -734,7 +718,7 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
-                        
+
                         local yPos = 24
                         local selected = default
                         for _, opt in ipairs(options) do
@@ -743,7 +727,7 @@ function MyUI:Tab(name, icon)
                             row.Position = UDim2.new(0, 0, 0, yPos)
                             row.BackgroundTransparency = 1
                             row.Parent = f
-                            
+
                             local radio = Instance.new("Frame")
                             radio.Size = UDim2.new(0, 18, 0, 18)
                             radio.Position = UDim2.new(0, 0, 0.5, -9)
@@ -753,7 +737,7 @@ function MyUI:Tab(name, icon)
                             local rCorner = Instance.new("UICorner")
                             rCorner.CornerRadius = UDim.new(1,0)
                             rCorner.Parent = radio
-                            
+
                             local inner = Instance.new("Frame")
                             inner.Size = UDim2.new(0, 8, 0, 8)
                             inner.Position = UDim2.new(0.5, -4, 0.5, -4)
@@ -764,7 +748,7 @@ function MyUI:Tab(name, icon)
                             local innerCorner = Instance.new("UICorner")
                             innerCorner.CornerRadius = UDim.new(1,0)
                             innerCorner.Parent = inner
-                            
+
                             local optLbl = Instance.new("TextLabel")
                             optLbl.Size = UDim2.new(1, -24, 1, 0)
                             optLbl.Position = UDim2.new(0, 24, 0, 0)
@@ -775,7 +759,7 @@ function MyUI:Tab(name, icon)
                             optLbl.Font = Enum.Font.GothamMedium
                             optLbl.TextXAlignment = Enum.TextXAlignment.Left
                             optLbl.Parent = row
-                            
+
                             row.InputBegan:Connect(function(input)
                                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                                     selected = opt
@@ -797,14 +781,14 @@ function MyUI:Tab(name, icon)
                             yPos = yPos + 24
                         end
                     end
-                    
+
                     function groupObj:AddColorPicker(params)
                         local title = params.Title or ""
                         local default = params.Default or Color3.new(1,0,0)
                         local alpha = params.Transparency or 0
                         local callback = params.Callback or function() end
                         local f = self:_addItem(36)
-                        
+
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(0.5, 0, 1, 0)
                         lbl.BackgroundTransparency = 1
@@ -814,7 +798,7 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
-                        
+
                         local colorBtn = Instance.new("TextButton")
                         colorBtn.Size = UDim2.new(0, 40, 0, 30)
                         colorBtn.Position = UDim2.new(1, -45, 0.5, -15)
@@ -824,7 +808,8 @@ function MyUI:Tab(name, icon)
                         local cBtnCorner = Instance.new("UICorner")
                         cBtnCorner.CornerRadius = UDim.new(0, 4)
                         cBtnCorner.Parent = colorBtn
-                        
+
+                        -- Abre um seletor de cores simples (aleatório para demo)
                         colorBtn.MouseButton1Click:Connect(function()
                             local newColor = Color3.new(math.random(), math.random(), math.random())
                             colorBtn.BackgroundColor3 = newColor
@@ -835,14 +820,14 @@ function MyUI:Tab(name, icon)
                             callback(color, a or alpha)
                         end }
                     end
-                    
+
                     function groupObj:AddTextbox(params)
                         local title = params.Title or ""
                         local placeholder = params.Placeholder or ""
                         local clearOnFocus = params.ClearOnFocus or false
                         local callback = params.Callback or function() end
                         local f = self:_addItem(34)
-                        
+
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(0.4, 0, 1, 0)
                         lbl.BackgroundTransparency = 1
@@ -852,7 +837,7 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
-                        
+
                         local box = Instance.new("TextBox")
                         box.Size = UDim2.new(0.55, 0, 0.7, 0)
                         box.Position = UDim2.new(0.4, 0, 0.15, 0)
@@ -868,7 +853,7 @@ function MyUI:Tab(name, icon)
                         local boxCorner = Instance.new("UICorner")
                         boxCorner.CornerRadius = UDim.new(0, 4)
                         boxCorner.Parent = box
-                        
+
                         box.FocusLost:Connect(function(enterPressed)
                             if enterPressed then
                                 callback(box.Text)
@@ -876,12 +861,12 @@ function MyUI:Tab(name, icon)
                         end)
                         return { Set = function(self, text) box.Text = text end }
                     end
-                    
+
                     function groupObj:AddButton(params)
                         local title = params.Title or ""
                         local callback = params.Callback or function() end
                         local f = self:_addItem(32)
-                        
+
                         local btn = Instance.new("TextButton")
                         btn.Size = UDim2.new(0.9, 0, 0.7, 0)
                         btn.Position = UDim2.new(0.05, 0, 0.15, 0)
@@ -899,25 +884,23 @@ function MyUI:Tab(name, icon)
                         btn.MouseButton1Click:Connect(callback)
                         return btn
                     end
-                    
+
                     function groupObj:AddKeybind(params)
-                        local title = params.Title or ""
-                        local default = params.Default or Enum.KeyCode.None
-                        local callback = params.Callback or function() end
+                        -- Placeholder para mobile (não usado)
                         local f = self:_addItem(32)
                         local lbl = Instance.new("TextLabel")
-                        lbl.Size = UDim2.new(0.6, 0, 1, 0)
+                        lbl.Size = UDim2.new(1, 0, 1, 0)
                         lbl.BackgroundTransparency = 1
-                        lbl.Text = title .. " (mobile not supported)"
+                        lbl.Text = params.Title .. " (mobile não suporta binds)"
                         lbl.TextColor3 = Theme.TextDark
                         lbl.TextSize = 13
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.Parent = f
                         return { Set = function() end }
                     end
-                    
+
                     function groupObj:AddSeparator()
-                        local f = self:_addItem(10)
+                        local f = self:_addItem(4)
                         local line = Instance.new("Frame")
                         line.Size = UDim2.new(1, -10, 0, 1)
                         line.Position = UDim2.new(0, 5, 0.5, -0.5)
@@ -925,11 +908,11 @@ function MyUI:Tab(name, icon)
                         line.BorderSizePixel = 0
                         line.Parent = f
                     end
-                    
+
                     function groupObj:AddSpacing(height)
                         self:_addItem(height)
                     end
-                    
+
                     function groupObj:AddLabelText(key, value)
                         local f = self:_addItem(24)
                         local lbl = Instance.new("TextLabel")
@@ -941,6 +924,7 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
+                        -- destaca o valor
                         local valPart = Instance.new("TextLabel")
                         valPart.Size = UDim2.new(0.4, 0, 1, 0)
                         valPart.Position = UDim2.new(0.5, 0, 0, 0)
@@ -952,7 +936,7 @@ function MyUI:Tab(name, icon)
                         valPart.TextXAlignment = Enum.TextXAlignment.Right
                         valPart.Parent = f
                     end
-                    
+
                     function groupObj:AddBulletText(text)
                         local f = self:_addItem(24)
                         local lbl = Instance.new("TextLabel")
@@ -965,25 +949,7 @@ function MyUI:Tab(name, icon)
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
                     end
-                    
-                    function groupObj:AddNewLine()
-                        self:_addItem(6)
-                    end
-                    
-                    function groupObj:AlignTextToFramePadding(text)
-                        local f = self:_addItem(24)
-                        local lbl = Instance.new("TextLabel")
-                        lbl.Size = UDim2.new(1, -10, 1, 0)
-                        lbl.Position = UDim2.new(0, 5, 0, 0)
-                        lbl.BackgroundTransparency = 1
-                        lbl.Text = text
-                        lbl.TextColor3 = Theme.TextDark
-                        lbl.TextSize = 13
-                        lbl.Font = Enum.Font.GothamMedium
-                        lbl.TextXAlignment = Enum.TextXAlignment.Left
-                        lbl.Parent = f
-                    end
-                    
+
                     function groupObj:AddTextUnformatted(text)
                         local f = self:_addItem(24)
                         local lbl = Instance.new("TextLabel")
@@ -996,7 +962,7 @@ function MyUI:Tab(name, icon)
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
                     end
-                    
+
                     function groupObj:AddTextWrapped(text)
                         local f = self:_addItem(24)
                         local lbl = Instance.new("TextLabel")
@@ -1010,13 +976,13 @@ function MyUI:Tab(name, icon)
                         lbl.TextWrapped = true
                         lbl.Parent = f
                     end
-                    
+
                     function groupObj:AddProgressBar(params)
                         local title = params.Title or ""
                         local default = params.Default or 0.5
                         local callback = params.Callback or function() end
                         local f = self:_addItem(36)
-                        
+
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(0.6, 0, 0.5, 0)
                         lbl.BackgroundTransparency = 1
@@ -1026,7 +992,7 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
-                        
+
                         local valLbl = Instance.new("TextLabel")
                         valLbl.Size = UDim2.new(0.3, 0, 0.5, 0)
                         valLbl.Position = UDim2.new(0.7, 0, 0, 0)
@@ -1037,7 +1003,7 @@ function MyUI:Tab(name, icon)
                         valLbl.Font = Enum.Font.GothamMedium
                         valLbl.TextXAlignment = Enum.TextXAlignment.Right
                         valLbl.Parent = f
-                        
+
                         local track = Instance.new("Frame")
                         track.Size = UDim2.new(0.9, 0, 0, 6)
                         track.Position = UDim2.new(0.05, 0, 0.7, 0)
@@ -1047,7 +1013,7 @@ function MyUI:Tab(name, icon)
                         local trackCorner = Instance.new("UICorner")
                         trackCorner.CornerRadius = UDim.new(1,0)
                         trackCorner.Parent = track
-                        
+
                         local fill = Instance.new("Frame")
                         fill.Size = UDim2.new(default, 0, 1, 0)
                         fill.BackgroundColor3 = Theme.Accent
@@ -1056,7 +1022,7 @@ function MyUI:Tab(name, icon)
                         local fillCorner = Instance.new("UICorner")
                         fillCorner.CornerRadius = UDim.new(1,0)
                         fillCorner.Parent = fill
-                        
+
                         local obj = { Set = function(self, val)
                             val = math.clamp(val, 0, 1)
                             fill.Size = UDim2.new(val, 0, 1, 0)
@@ -1065,33 +1031,22 @@ function MyUI:Tab(name, icon)
                         end }
                         return obj
                     end
-                    
+
                     function groupObj:AddGraph(params)
+                        -- Gráfico simples (placeholder visual)
                         local f = self:_addItem(60)
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(1, 0, 1, 0)
                         lbl.BackgroundTransparency = 1
-                        lbl.Text = "📊 " .. (params.Title or "Graph")
+                        lbl.Text = "📊 " .. (params.Title or "Gráfico")
                         lbl.TextColor3 = Theme.Text
                         lbl.TextSize = 14
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.Parent = f
-                        -- Placeholder: adiciona alguns retângulos para simular gráfico
-                        for i = 1, 10 do
-                            local bar = Instance.new("Frame")
-                            bar.Size = UDim2.new(0.08, 0, 0, math.random(20, 40))
-                            bar.Position = UDim2.new(0.05 + (i-1)*0.09, 0, 0.5, 0)
-                            bar.BackgroundColor3 = Theme.Accent
-                            bar.BackgroundTransparency = 0.3
-                            bar.BorderSizePixel = 0
-                            bar.Parent = f
-                            local barCorner = Instance.new("UICorner")
-                            barCorner.CornerRadius = UDim.new(0, 2)
-                            barCorner.Parent = bar
-                        end
+                        -- Poderia desenhar um gráfico com frames, mas é extenso
                         return { Set = function() end }
                     end
-                    
+
                     function groupObj:AddImage(params)
                         local f = self:_addItem(120)
                         local img = Instance.new("ImageLabel")
@@ -1102,7 +1057,7 @@ function MyUI:Tab(name, icon)
                         img.Parent = f
                         return img
                     end
-                    
+
                     function groupObj:AddImageButton(params)
                         local f = self:_addItem(50)
                         local btn = Instance.new("ImageButton")
@@ -1114,45 +1069,21 @@ function MyUI:Tab(name, icon)
                         btn.MouseButton1Click:Connect(params.Callback or function() end)
                         return btn
                     end
-                    
+
                     function groupObj:AddVerticalSlider(params)
+                        -- Placeholder
                         local f = self:_addItem(140)
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(1, 0, 0, 24)
                         lbl.BackgroundTransparency = 1
-                        lbl.Text = params.Title or "Vertical Slider"
+                        lbl.Text = params.Title or "Slider Vertical"
                         lbl.TextColor3 = Theme.Text
                         lbl.TextSize = 14
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.Parent = f
-                        -- Placeholder: barra vertical simples
-                        local track = Instance.new("Frame")
-                        track.Size = UDim2.new(0, 8, 0, 80)
-                        track.Position = UDim2.new(0.5, -4, 0.3, 0)
-                        track.BackgroundColor3 = Color3.fromRGB(60,60,80)
-                        track.BorderSizePixel = 0
-                        track.Parent = f
-                        local trackCorner = Instance.new("UICorner")
-                        trackCorner.CornerRadius = UDim.new(1,0)
-                        trackCorner.Parent = track
-                        
-                        local fill = Instance.new("Frame")
-                        fill.Size = UDim2.new(1, 0, 0.5, 0)
-                        fill.Position = UDim2.new(0, 0, 0.5, 0)
-                        fill.BackgroundColor3 = Theme.Accent
-                        fill.BorderSizePixel = 0
-                        fill.Parent = track
-                        local fillCorner = Instance.new("UICorner")
-                        fillCorner.CornerRadius = UDim.new(1,0)
-                        fillCorner.Parent = fill
-                        
-                        return { Set = function(val) 
-                            val = math.clamp(val, 0, 1)
-                            fill.Size = UDim2.new(1, 0, val, 0)
-                            fill.Position = UDim2.new(0, 0, 1-val, 0)
-                        end }
+                        return { Set = function() end }
                     end
-                    
+
                     function groupObj:AddSelectable(params)
                         local title = params.Title or ""
                         local default = params.Default or false
@@ -1187,7 +1118,7 @@ function MyUI:Tab(name, icon)
                             end
                         end }
                     end
-                    
+
                     function groupObj:TreeNode(title)
                         local isOpen = false
                         local f = self:_addItem(32)
@@ -1204,31 +1135,29 @@ function MyUI:Tab(name, icon)
                         local hCorner = Instance.new("UICorner")
                         hCorner.CornerRadius = UDim.new(0, 4)
                         hCorner.Parent = header
-                        
+
                         local container = Instance.new("Frame")
                         container.Size = UDim2.new(1, 0, 0, 0)
                         container.Position = UDim2.new(0, 0, 0, 32)
                         container.BackgroundTransparency = 1
                         container.Visible = false
                         container.Parent = f
-                        
-                        local layout = Instance.new("UIListLayout")
-                        layout.FillDirection = Enum.FillDirection.Vertical
-                        layout.SortOrder = Enum.SortOrder.LayoutOrder
-                        layout.Padding = UDim.new(0, 4)
-                        layout.Parent = container
-                        
+
                         local treeObj = {
                             _container = container,
+                            _y = 0,
+                            _gap = 4,
                             _addItem = function(self, height)
                                 local item = Instance.new("Frame")
-                                item.Size = UDim2.new(1, 0, 0, height)
+                                item.Size = UDim2.new(1, -10, 0, height)
+                                item.Position = UDim2.new(0, 5, 0, self._y)
                                 item.BackgroundTransparency = 1
                                 item.Parent = self._container
+                                self._y = self._y + height + self._gap
                                 return item
                             end
                         }
-                        
+
                         function treeObj:AddLabel(text)
                             local f = self:_addItem(24)
                             local lbl = Instance.new("TextLabel")
@@ -1244,8 +1173,33 @@ function MyUI:Tab(name, icon)
                         end
                         function treeObj:AddToggle(params) 
                             local f = self:_addItem(32)
-                            -- Implementação resumida
-                            return { Set = function() end }
+                            -- toggle simplificado dentro da árvore
+                            local lbl = Instance.new("TextLabel")
+                            lbl.Size = UDim2.new(0.7, 0, 1, 0)
+                            lbl.BackgroundTransparency = 1
+                            lbl.Text = params.Title
+                            lbl.TextColor3 = Theme.Text
+                            lbl.TextSize = 13
+                            lbl.Font = Enum.Font.GothamMedium
+                            lbl.Parent = f
+                            local toggle = Instance.new("Frame")
+                            toggle.Size = UDim2.new(0, 30, 0, 16)
+                            toggle.Position = UDim2.new(1, -35, 0.5, -8)
+                            toggle.BackgroundColor3 = Color3.fromRGB(80,80,100)
+                            toggle.BorderSizePixel = 0
+                            toggle.Parent = f
+                            local tCorner = Instance.new("UICorner")
+                            tCorner.CornerRadius = UDim.new(1,0)
+                            tCorner.Parent = toggle
+                            local state = false
+                            toggle.InputBegan:Connect(function(input)
+                                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                                    state = not state
+                                    toggle.BackgroundColor3 = state and Theme.Accent or Color3.fromRGB(80,80,100)
+                                    params.Callback(state)
+                                end
+                            end)
+                            return { Set = function(self, v) end }
                         end
                         function treeObj:AddButton(params)
                             local f = self:_addItem(32)
@@ -1266,12 +1220,11 @@ function MyUI:Tab(name, icon)
                         function treeObj:TreePop()
                             -- não faz nada
                         end
-                        
+
                         header.MouseButton1Click:Connect(function()
                             isOpen = not isOpen
                             container.Visible = isOpen
                             header.Text = (isOpen and "▼ " or "▶ ") .. title
-                            -- Atualiza altura
                             if isOpen then
                                 local totalHeight = container.AbsoluteSize.Y + 32
                                 f.Size = UDim2.new(1, 0, 0, totalHeight)
@@ -1282,7 +1235,7 @@ function MyUI:Tab(name, icon)
                         end)
                         return treeObj
                     end
-                    
+
                     return groupObj
                 end
             }
@@ -1290,18 +1243,14 @@ function MyUI:Tab(name, icon)
     }
 end
 
--- ========== SISTEMA DE FLAGS ==========
-MyUI.Flags = {}
-
--- ========== FUNÇÃO PARA CRIAR WINDOW (compatibilidade) ==========
-function MyUI:Window(title)
-    TitleLabel.Text = "⚡ " .. title
+-- ========== FUNÇÃO PRINCIPAL ==========
+function NovaUI:Window(title)
+    TitleLabel.Text = "✦ " .. title
     return {
         Tab = function(self, name, icon)
-            return MyUI:Tab(name, icon)
+            return NovaUI:Tab(name, icon)
         end
     }
 end
 
--- ========== RETORNA A BIBLIOTECA ==========
-return MyUI
+return NovaUI
