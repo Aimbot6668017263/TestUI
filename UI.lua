@@ -4,6 +4,7 @@
     - Tabs à esquerda, conteúdo à direita
     - Totalmente touch-friendly
     - Sem CoreGui, persistente após morte
+    - Com suporte a Flags e layout dinâmico
 ]]
 
 local MyUI = {}
@@ -142,10 +143,6 @@ Sidebar.BackgroundColor3 = Theme.Sidebar
 Sidebar.BackgroundTransparency = 0.1
 Sidebar.BorderSizePixel = 0
 Sidebar.Parent = MainFrame
-
-local SidebarCorner = Instance.new("UICorner")
-SidebarCorner.CornerRadius = UDim.new(0, 0)
-SidebarCorner.Parent = Sidebar
 
 -- Área de conteúdo (direita)
 local ContentArea = Instance.new("ScrollingFrame")
@@ -302,7 +299,7 @@ function MyUI:Tab(name, icon)
                     gTitle.TextXAlignment = Enum.TextXAlignment.Left
                     gTitle.Parent = group
                     
-                    -- Container interno para os itens
+                    -- Container interno para os itens com UIListLayout
                     local itemsContainer = Instance.new("Frame")
                     itemsContainer.Name = "Items"
                     itemsContainer.Size = UDim2.new(1, -10, 0, 0)
@@ -310,8 +307,12 @@ function MyUI:Tab(name, icon)
                     itemsContainer.BackgroundTransparency = 1
                     itemsContainer.Parent = group
                     
-                    local itemY = 0
-                    local itemGap = 6
+                    -- Layout automático
+                    local layout = Instance.new("UIListLayout")
+                    layout.FillDirection = Enum.FillDirection.Vertical
+                    layout.SortOrder = Enum.SortOrder.LayoutOrder
+                    layout.Padding = UDim.new(0, 4)
+                    layout.Parent = itemsContainer
                     
                     -- Função para atualizar altura do group
                     local function updateGroupHeight()
@@ -319,22 +320,20 @@ function MyUI:Tab(name, icon)
                         group.Size = UDim2.new(isLeft and 0.48 or 0.48, 0, 0, totalHeight)
                     end
                     
+                    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateGroupHeight)
+                    RunService.Heartbeat:Connect(function()
+                        updateGroupHeight()
+                    end)
+                    
                     -- Retorna funções para adicionar elementos
                     local groupObj = {
                         _container = itemsContainer,
-                        _y = itemY,
-                        _gap = itemGap,
                         _update = updateGroupHeight,
                         _addItem = function(self, itemHeight)
                             local frame = Instance.new("Frame")
                             frame.Size = UDim2.new(1, 0, 0, itemHeight)
-                            frame.Position = UDim2.new(0, 0, 0, self._y)
                             frame.BackgroundTransparency = 1
                             frame.Parent = self._container
-                            self._y = self._y + itemHeight + self._gap
-                            -- Atualiza altura total do group
-                            RunService.Heartbeat:Wait()
-                            self._update()
                             return frame
                         end
                     }
@@ -380,7 +379,6 @@ function MyUI:Tab(name, icon)
                         lblContent.TextXAlignment = Enum.TextXAlignment.Left
                         lblContent.TextWrapped = wrapped
                         lblContent.Parent = f
-                        -- Ajusta altura baseada no conteúdo
                         if wrapped then
                             local textBounds = lblContent.TextBounds
                             local newHeight = math.max(20, textBounds.Y + 10)
@@ -433,6 +431,7 @@ function MyUI:Tab(name, icon)
                             toggleFrame.BackgroundColor3 = state and Theme.Accent or Color3.fromRGB(80,80,100)
                             TweenService:Create(knob, TweenInfo.new(0.15), {Position = state and UDim2.new(1, -20, 0.5, -8) or UDim2.new(0, 4, 0.5, -8)}):Play()
                             callback(state)
+                            if flag then MyUI.Flags[flag] = state end
                         end
                         toggleFrame.InputBegan:Connect(function(input)
                             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -652,7 +651,7 @@ function MyUI:Tab(name, icon)
                                 for _, v in ipairs(default) do selected[v] = true end
                             end
                         else
-                            selected[default] = true
+                            if default then selected[default] = true end
                         end
                         
                         local itemHeight = 28
@@ -690,13 +689,11 @@ function MyUI:Tab(name, icon)
                                         item.BackgroundColor3 = Color3.fromRGB(50,50,70)
                                         item.TextColor3 = Theme.TextDark
                                     end
-                                    -- Atualiza texto do botão
                                     local selList = {}
                                     for k, v in pairs(selected) do if v then table.insert(selList, k) end end
                                     btn.Text = #selList > 0 and table.concat(selList, ", ") or "Select..."
                                     callback(selected)
                                 else
-                                    -- Single
                                     for _, other in ipairs(dropdownFrame:GetChildren()) do
                                         if other:IsA("TextButton") then
                                             other.BackgroundColor3 = Color3.fromRGB(50,50,70)
@@ -828,9 +825,6 @@ function MyUI:Tab(name, icon)
                         cBtnCorner.CornerRadius = UDim.new(0, 4)
                         cBtnCorner.Parent = colorBtn
                         
-                        -- Simples: abre um seletor de cores (usando ColorPicker do Roblox)
-                        -- Na prática, você pode implementar um seletor customizado, mas por simplicidade, usaremos o InputBegan para abrir o seletor nativo? Não é possível, então faremos um placeholder.
-                        -- Vamos apenas permitir clicar e mudar para uma cor aleatória (para demonstração)
                         colorBtn.MouseButton1Click:Connect(function()
                             local newColor = Color3.new(math.random(), math.random(), math.random())
                             colorBtn.BackgroundColor3 = newColor
@@ -907,7 +901,6 @@ function MyUI:Tab(name, icon)
                     end
                     
                     function groupObj:AddKeybind(params)
-                        -- Para mobile, não usamos keybinds, mas mantemos para compatibilidade
                         local title = params.Title or ""
                         local default = params.Default or Enum.KeyCode.None
                         local callback = params.Callback or function() end
@@ -924,7 +917,7 @@ function MyUI:Tab(name, icon)
                     end
                     
                     function groupObj:AddSeparator()
-                        local f = self:_addItem(4)
+                        local f = self:_addItem(10)
                         local line = Instance.new("Frame")
                         line.Size = UDim2.new(1, -10, 0, 1)
                         line.Position = UDim2.new(0, 5, 0.5, -0.5)
@@ -948,7 +941,6 @@ function MyUI:Tab(name, icon)
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.TextXAlignment = Enum.TextXAlignment.Left
                         lbl.Parent = f
-                        -- Destacar valor
                         local valPart = Instance.new("TextLabel")
                         valPart.Size = UDim2.new(0.4, 0, 1, 0)
                         valPart.Position = UDim2.new(0.5, 0, 0, 0)
@@ -1075,7 +1067,6 @@ function MyUI:Tab(name, icon)
                     end
                     
                     function groupObj:AddGraph(params)
-                        -- Placeholder simples
                         local f = self:_addItem(60)
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(1, 0, 1, 0)
@@ -1085,7 +1076,19 @@ function MyUI:Tab(name, icon)
                         lbl.TextSize = 14
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.Parent = f
-                        -- Poderíamos implementar um gráfico real, mas é extenso
+                        -- Placeholder: adiciona alguns retângulos para simular gráfico
+                        for i = 1, 10 do
+                            local bar = Instance.new("Frame")
+                            bar.Size = UDim2.new(0.08, 0, 0, math.random(20, 40))
+                            bar.Position = UDim2.new(0.05 + (i-1)*0.09, 0, 0.5, 0)
+                            bar.BackgroundColor3 = Theme.Accent
+                            bar.BackgroundTransparency = 0.3
+                            bar.BorderSizePixel = 0
+                            bar.Parent = f
+                            local barCorner = Instance.new("UICorner")
+                            barCorner.CornerRadius = UDim.new(0, 2)
+                            barCorner.Parent = bar
+                        end
                         return { Set = function() end }
                     end
                     
@@ -1113,7 +1116,6 @@ function MyUI:Tab(name, icon)
                     end
                     
                     function groupObj:AddVerticalSlider(params)
-                        -- Placeholder (pode ser implementado)
                         local f = self:_addItem(140)
                         local lbl = Instance.new("TextLabel")
                         lbl.Size = UDim2.new(1, 0, 0, 24)
@@ -1123,7 +1125,32 @@ function MyUI:Tab(name, icon)
                         lbl.TextSize = 14
                         lbl.Font = Enum.Font.GothamMedium
                         lbl.Parent = f
-                        return { Set = function() end }
+                        -- Placeholder: barra vertical simples
+                        local track = Instance.new("Frame")
+                        track.Size = UDim2.new(0, 8, 0, 80)
+                        track.Position = UDim2.new(0.5, -4, 0.3, 0)
+                        track.BackgroundColor3 = Color3.fromRGB(60,60,80)
+                        track.BorderSizePixel = 0
+                        track.Parent = f
+                        local trackCorner = Instance.new("UICorner")
+                        trackCorner.CornerRadius = UDim.new(1,0)
+                        trackCorner.Parent = track
+                        
+                        local fill = Instance.new("Frame")
+                        fill.Size = UDim2.new(1, 0, 0.5, 0)
+                        fill.Position = UDim2.new(0, 0, 0.5, 0)
+                        fill.BackgroundColor3 = Theme.Accent
+                        fill.BorderSizePixel = 0
+                        fill.Parent = track
+                        local fillCorner = Instance.new("UICorner")
+                        fillCorner.CornerRadius = UDim.new(1,0)
+                        fillCorner.Parent = fill
+                        
+                        return { Set = function(val) 
+                            val = math.clamp(val, 0, 1)
+                            fill.Size = UDim2.new(1, 0, val, 0)
+                            fill.Position = UDim2.new(0, 0, 1-val, 0)
+                        end }
                     end
                     
                     function groupObj:AddSelectable(params)
@@ -1162,7 +1189,6 @@ function MyUI:Tab(name, icon)
                     end
                     
                     function groupObj:TreeNode(title)
-                        -- Nós de árvore (expansíveis)
                         local isOpen = false
                         local f = self:_addItem(32)
                         local header = Instance.new("TextButton")
@@ -1186,22 +1212,23 @@ function MyUI:Tab(name, icon)
                         container.Visible = false
                         container.Parent = f
                         
+                        local layout = Instance.new("UIListLayout")
+                        layout.FillDirection = Enum.FillDirection.Vertical
+                        layout.SortOrder = Enum.SortOrder.LayoutOrder
+                        layout.Padding = UDim.new(0, 4)
+                        layout.Parent = container
+                        
                         local treeObj = {
                             _container = container,
-                            _y = 0,
-                            _gap = 4,
                             _addItem = function(self, height)
                                 local item = Instance.new("Frame")
-                                item.Size = UDim2.new(1, -10, 0, height)
-                                item.Position = UDim2.new(0, 5, 0, self._y)
+                                item.Size = UDim2.new(1, 0, 0, height)
                                 item.BackgroundTransparency = 1
                                 item.Parent = self._container
-                                self._y = self._y + height + self._gap
                                 return item
                             end
                         }
                         
-                        -- Adiciona métodos básicos para dentro da árvore
                         function treeObj:AddLabel(text)
                             local f = self:_addItem(24)
                             local lbl = Instance.new("TextLabel")
@@ -1217,8 +1244,7 @@ function MyUI:Tab(name, icon)
                         end
                         function treeObj:AddToggle(params) 
                             local f = self:_addItem(32)
-                            -- código similar ao toggle, mas dentro da árvore
-                            -- Implementação resumida...
+                            -- Implementação resumida
                             return { Set = function() end }
                         end
                         function treeObj:AddButton(params)
@@ -1238,7 +1264,7 @@ function MyUI:Tab(name, icon)
                             return btn
                         end
                         function treeObj:TreePop()
-                            -- não faz nada, apenas para compatibilidade
+                            -- não faz nada
                         end
                         
                         header.MouseButton1Click:Connect(function()
@@ -1263,6 +1289,9 @@ function MyUI:Tab(name, icon)
         end
     }
 end
+
+-- ========== SISTEMA DE FLAGS ==========
+MyUI.Flags = {}
 
 -- ========== FUNÇÃO PARA CRIAR WINDOW (compatibilidade) ==========
 function MyUI:Window(title)
