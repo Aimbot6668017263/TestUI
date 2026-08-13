@@ -1,7 +1,7 @@
 --[[
-    NebulaUI v1.0 (Simplificada)
+    NebulaUI v1.0 - Versão Estável
     Interface mobile-first, sem CoreGui, sem binds.
-    Funções expostas diretamente na aba.
+    Todas as funções são expostas na aba.
 ]]
 
 local NebulaUI = {}
@@ -78,7 +78,7 @@ local function CreateFrame(parent, size, position, color, name)
     frame.Position = position or UDim2.new(0, 0, 0, 0)
     frame.BackgroundColor3 = color or Theme.Background
     frame.BorderSizePixel = 0
-    frame.Name = name or "Frame"
+    frame.Name = tostring(name or "Frame")
     frame.Parent = parent
     return frame
 end
@@ -87,13 +87,13 @@ local function CreateLabel(parent, text, size, color, name)
     local label = Instance.new("TextLabel")
     label.Size = size or UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = text or ""
+    label.Text = tostring(text or "")
     label.TextColor3 = color or Theme.Text
     label.TextSize = 13
     label.Font = Enum.Font.GothamMedium
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.TextTruncate = Enum.TextTruncate.AtEnd
-    label.Name = name or "Label"
+    label.Name = tostring(name or "Label")
     label.Parent = parent
     return label
 end
@@ -109,12 +109,12 @@ end
 -- Função principal
 function NebulaUI:CreateWindow(windowTitle)
     local Window = {}
-    Window.Title = windowTitle
+    Window.Title = tostring(windowTitle)
     Window.OpenDropdown = nil
 
     -- ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "NebulaUI_" .. windowTitle
+    ScreenGui.Name = "NebulaUI_" .. Window.Title
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.IgnoreGuiInset = true
@@ -153,7 +153,7 @@ function NebulaUI:CreateWindow(windowTitle)
     local AccentBar = CreateFrame(Topbar, UDim2.new(0, 4, 0, 26), UDim2.new(0, 12, 0.5, -13), Theme.Accent, "Accent")
     CreateCorner(AccentBar, 2)
 
-    local TitleLabel = CreateLabel(Topbar, windowTitle, UDim2.new(1, -100, 1, 0), Theme.Text, "Title")
+    local TitleLabel = CreateLabel(Topbar, Window.Title, UDim2.new(1, -100, 1, 0), Theme.Text, "Title")
     TitleLabel.Position = UDim2.new(0, 26, 0, 0)
     TitleLabel.TextSize = 15
     TitleLabel.Font = Enum.Font.GothamBold
@@ -273,8 +273,12 @@ function NebulaUI:CreateWindow(windowTitle)
         tab.indicator.BackgroundTransparency = 0
     end
 
-    -- Funções de elementos (definidas antes de CreateTab para evitar problema de escopo)
+    -- Funções de elementos (definidas antes de CreateTab)
     local function AddSection(tabData, sectionText)
+        -- Garantir que sectionText seja string
+        if type(sectionText) ~= "string" then
+            sectionText = tostring(sectionText)
+        end
         local sectionFrame = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 20), nil, Color3.new(0, 0, 0), "Section_" .. sectionText)
         sectionFrame.BackgroundTransparency = 1
         CreateFrame(sectionFrame, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 0.5, 0), Theme.Border, "Line")
@@ -292,6 +296,8 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     local function AddToggle(tabData, labelText, description, default, callback)
+        labelText = tostring(labelText)
+        if description then description = tostring(description) end
         local state = default or false
         local height = description and 58 or 46
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, height), nil, Theme.ElementBG, "Toggle_" .. labelText)
@@ -327,6 +333,7 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     local function AddSlider(tabData, labelText, minValue, maxValue, defaultValue, callback)
+        labelText = tostring(labelText)
         minValue = minValue or 0
         maxValue = maxValue or 100
         local currentValue = math.clamp(defaultValue or minValue, minValue, maxValue)
@@ -395,6 +402,8 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     local function AddButton(tabData, labelText, buttonText, callback)
+        labelText = tostring(labelText)
+        buttonText = tostring(buttonText or "Run")
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 44), nil, Theme.ElementBG, "Button_" .. labelText)
         CreateCorner(container, 9)
         CreatePadding(container, 8, 10, 8, 10)
@@ -402,7 +411,7 @@ function NebulaUI:CreateWindow(windowTitle)
         CreateLabel(container, labelText, UDim2.new(0.6, 0, 1, 0), Theme.Text).TextSize = 13
         local buttonVisual = CreateFrame(container, UDim2.new(0, 80, 1, -8), UDim2.new(1, -80, 0, 4), Theme.Accent, "ButtonVisual")
         CreateCorner(buttonVisual, 7)
-        local buttonLabel = CreateLabel(buttonVisual, buttonText or "Run", UDim2.new(1, 0, 1, 0), Color3.fromRGB(10, 10, 20), "ButtonLabel")
+        local buttonLabel = CreateLabel(buttonVisual, buttonText, UDim2.new(1, 0, 1, 0), Color3.fromRGB(10, 10, 20), "ButtonLabel")
         buttonLabel.TextXAlignment = Enum.TextXAlignment.Center
         buttonLabel.TextSize = 12
         buttonLabel.Font = Enum.Font.GothamBold
@@ -422,6 +431,8 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     local function AddTextBox(tabData, labelText, placeholderText, callback)
+        labelText = tostring(labelText)
+        placeholderText = tostring(placeholderText or "Digite...")
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 66), nil, Theme.ElementBG, "TextBox_" .. labelText)
         CreateCorner(container, 9)
         CreatePadding(container, 8, 10, 8, 10)
@@ -435,7 +446,7 @@ function NebulaUI:CreateWindow(windowTitle)
         textBox.Position = UDim2.new(0, 8, 0, 0)
         textBox.BackgroundTransparency = 1
         textBox.Text = ""
-        textBox.PlaceholderText = placeholderText or "Digite..."
+        textBox.PlaceholderText = placeholderText
         textBox.PlaceholderColor3 = Theme.SubText
         textBox.TextColor3 = Theme.Text
         textBox.TextSize = 12
@@ -454,7 +465,10 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     local function AddDropdown(tabData, labelText, options, defaultOption, callback)
+        labelText = tostring(labelText)
+        options = options or {}
         local selectedOption = defaultOption or options[1] or ""
+        if type(selectedOption) ~= "string" then selectedOption = tostring(selectedOption) end
         local isOpen = false
         local listFrame = nil
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 44), nil, Theme.ElementBG, "Dropdown_" .. labelText)
@@ -503,6 +517,7 @@ function NebulaUI:CreateWindow(windowTitle)
                 CreatePadding(listFrame, 4, 4, 4, 4)
 
                 for _, option in ipairs(options) do
+                    if type(option) ~= "string" then option = tostring(option) end
                     local optionButton = Instance.new("TextButton")
                     optionButton.Size = UDim2.new(1, 0, 0, 30)
                     optionButton.BackgroundColor3 = Theme.ElementBG
@@ -550,14 +565,16 @@ function NebulaUI:CreateWindow(windowTitle)
         return {
             Get = function() return selectedOption end,
             Set = function(value)
-                selectedOption = value
-                selectButton.Text = value
+                selectedOption = tostring(value)
+                selectButton.Text = selectedOption
             end,
             Close = closeDropdown
         }
     end
 
     local function AddMultiSelect(tabData, labelText, options, defaultOptions, callback)
+        labelText = tostring(labelText)
+        options = options or {}
         local selectedOptions = {}
         for _, value in ipairs(defaultOptions or {}) do
             selectedOptions[value] = true
@@ -633,6 +650,7 @@ function NebulaUI:CreateWindow(windowTitle)
                 CreatePadding(listFrame, 4, 4, 4, 4)
 
                 for _, option in ipairs(options) do
+                    if type(option) ~= "string" then option = tostring(option) end
                     local row = CreateFrame(listFrame, UDim2.new(1, 0, 0, 34), nil, Theme.ElementBG, "Row_" .. option)
                     CreateCorner(row, 7)
                     row.ZIndex = 21
@@ -722,6 +740,8 @@ function NebulaUI:CreateWindow(windowTitle)
 
     -- Criação de abas (agora as funções já estão definidas)
     local function CreateTab(tabName, tabIcon)
+        tabName = tostring(tabName)
+        tabIcon = tabIcon and tostring(tabIcon) or tabName:sub(1,1)
         local tabData = {}
 
         local button = Instance.new("TextButton")
@@ -737,7 +757,7 @@ function NebulaUI:CreateWindow(windowTitle)
         CreateCorner(indicator, 2)
         indicator.BackgroundTransparency = 1
 
-        local icon = CreateLabel(button, tabIcon or tabName:sub(1, 1), UDim2.new(1, 0, 0, 24), Theme.SubText, "Icon")
+        local icon = CreateLabel(button, tabIcon, UDim2.new(1, 0, 0, 24), Theme.SubText, "Icon")
         icon.Position = UDim2.new(0, 0, 0, 7)
         icon.TextXAlignment = Enum.TextXAlignment.Center
         icon.TextSize = 17
@@ -798,6 +818,8 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     function Window:Notify(title, message, duration)
+        title = tostring(title)
+        message = tostring(message)
         local notificationFrame = CreateFrame(ScreenGui, UDim2.new(0, 200, 0, 60), UDim2.new(1, -10, 1, -60), Theme.ElementBG, "Notification")
         CreateCorner(notificationFrame, 8)
         CreateStroke(notificationFrame, Theme.Accent, 1)
