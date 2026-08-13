@@ -1,7 +1,7 @@
 --[[
-    NebulaUI v1.0 - Versão Estável
-    Interface mobile-first, sem CoreGui, sem binds.
-    Todas as funções são expostas na aba.
+    NebulaUI v1.0 - Versão Estável com Proteções
+    - Evita erros de tipos (string/tabela/função)
+    - Mobile-first, sem CoreGui, sem binds
 ]]
 
 local NebulaUI = {}
@@ -273,12 +273,9 @@ function NebulaUI:CreateWindow(windowTitle)
         tab.indicator.BackgroundTransparency = 0
     end
 
-    -- Funções de elementos (definidas antes de CreateTab)
+    -- Funções de elementos
     local function AddSection(tabData, sectionText)
-        -- Garantir que sectionText seja string
-        if type(sectionText) ~= "string" then
-            sectionText = tostring(sectionText)
-        end
+        sectionText = tostring(sectionText)
         local sectionFrame = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 20), nil, Color3.new(0, 0, 0), "Section_" .. sectionText)
         sectionFrame.BackgroundTransparency = 1
         CreateFrame(sectionFrame, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 0.5, 0), Theme.Border, "Line")
@@ -332,7 +329,7 @@ function NebulaUI:CreateWindow(windowTitle)
         return { Set = setState, Get = function() return state end }
     end
 
-        local function AddSlider(tabData, labelText, minValue, maxValue, defaultValue, callback)
+    local function AddSlider(tabData, labelText, minValue, maxValue, defaultValue, callback)
         labelText = tostring(labelText)
         minValue = tonumber(minValue) or 0
         maxValue = tonumber(maxValue) or 100
@@ -393,7 +390,7 @@ function NebulaUI:CreateWindow(windowTitle)
         return {
             Get = function() return currentValue end,
             Set = function(value)
-                currentValue = math.clamp(value, minValue, maxValue)
+                currentValue = math.clamp(tonumber(value) or currentValue, minValue, maxValue)
                 local finalPercent = (currentValue - minValue) / (maxValue - minValue)
                 fill.Size = UDim2.new(finalPercent, 0, 1, 0)
                 knob.Position = UDim2.new(finalPercent, -7, 0.5, -7)
@@ -467,9 +464,10 @@ function NebulaUI:CreateWindow(windowTitle)
 
     local function AddDropdown(tabData, labelText, options, defaultOption, callback)
         labelText = tostring(labelText)
-        options = options or {}
+        -- Garante que options seja uma tabela
+        if type(options) ~= "table" then options = {} end
         local selectedOption = defaultOption or options[1] or ""
-        if type(selectedOption) ~= "string" then selectedOption = tostring(selectedOption) end
+        selectedOption = tostring(selectedOption)
         local isOpen = false
         local listFrame = nil
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 44), nil, Theme.ElementBG, "Dropdown_" .. labelText)
@@ -518,7 +516,7 @@ function NebulaUI:CreateWindow(windowTitle)
                 CreatePadding(listFrame, 4, 4, 4, 4)
 
                 for _, option in ipairs(options) do
-                    if type(option) ~= "string" then option = tostring(option) end
+                    option = tostring(option)
                     local optionButton = Instance.new("TextButton")
                     optionButton.Size = UDim2.new(1, 0, 0, 30)
                     optionButton.BackgroundColor3 = Theme.ElementBG
@@ -575,7 +573,8 @@ function NebulaUI:CreateWindow(windowTitle)
 
     local function AddMultiSelect(tabData, labelText, options, defaultOptions, callback)
         labelText = tostring(labelText)
-        options = options or {}
+        -- Garante que options seja tabela
+        if type(options) ~= "table" then options = {} end
         local selectedOptions = {}
         for _, value in ipairs(defaultOptions or {}) do
             selectedOptions[value] = true
@@ -651,7 +650,7 @@ function NebulaUI:CreateWindow(windowTitle)
                 CreatePadding(listFrame, 4, 4, 4, 4)
 
                 for _, option in ipairs(options) do
-                    if type(option) ~= "string" then option = tostring(option) end
+                    option = tostring(option)
                     local row = CreateFrame(listFrame, UDim2.new(1, 0, 0, 34), nil, Theme.ElementBG, "Row_" .. option)
                     CreateCorner(row, 7)
                     row.ZIndex = 21
@@ -698,7 +697,7 @@ function NebulaUI:CreateWindow(windowTitle)
                         checkLabel.Visible = active
                         TweenObject(checkboxBackground, { BackgroundColor3 = active and Color3.fromRGB(20, 40, 65) or Color3.fromRGB(20, 20, 30) }, 0.15)
                         selectButton.Text = buildButtonText()
-                        if callback then
+                        if type(callback) == "function" then
                             local selectedList = {}
                             for _, opt in ipairs(options) do
                                 if selectedOptions[opt] then table.insert(selectedList, opt) end
@@ -739,7 +738,7 @@ function NebulaUI:CreateWindow(windowTitle)
         }
     end
 
-    -- Criação de abas (agora as funções já estão definidas)
+    -- Criação de abas
     local function CreateTab(tabName, tabIcon)
         tabName = tostring(tabName)
         tabIcon = tabIcon and tostring(tabIcon) or tabName:sub(1,1)
