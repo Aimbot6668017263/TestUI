@@ -1,12 +1,7 @@
 --[[
-    NebulaUI v1.0
-    Interface mobile-first com design único.
-    - Sem CoreGui (PlayerGui)
-    - Sem binds
-    - Tema escuro com cor de destaque
-    - Tabs verticais, Dropdown, MultiSelect, Slider, Toggle, etc.
-    - Sistema de config salvar/carregar
-    - Totalmente customizável
+    NebulaUI v1.0 (Simplificada)
+    Interface mobile-first, sem CoreGui, sem binds.
+    Funções expostas diretamente na aba.
 ]]
 
 local NebulaUI = {}
@@ -16,12 +11,10 @@ NebulaUI.__index = NebulaUI
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Tema padrão
+-- Tema
 local Theme = {
     Accent      = Color3.fromRGB(100, 180, 255),
     Background  = Color3.fromRGB(13, 13, 18),
@@ -113,14 +106,13 @@ local function CreateStroke(parent, color, thickness)
     return stroke
 end
 
--- Função principal que cria a interface
+-- Função principal
 function NebulaUI:CreateWindow(windowTitle)
     local Window = {}
     Window.Title = windowTitle
     Window.OpenDropdown = nil
-    Window.RegisteredOptions = {}
 
-    -- ScreenGui no PlayerGui
+    -- ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "NebulaUI_" .. windowTitle
     ScreenGui.ResetOnSpawn = false
@@ -187,7 +179,7 @@ function NebulaUI:CreateWindow(windowTitle)
         end)
     end)
 
-    -- Sistema de arrastar
+    -- Arrastar
     local dragging = false
     local dragStart = nil
     local windowStart = nil
@@ -219,7 +211,7 @@ function NebulaUI:CreateWindow(windowTitle)
         Shadow.Position = UDim2.new(newPosition.X.Scale, newPosition.X.Offset - 25, newPosition.Y.Scale, newPosition.Y.Offset - 25)
     end)
 
-    -- Sidebar (tabs verticais)
+    -- Sidebar
     local Sidebar = CreateFrame(
         WindowFrame,
         UDim2.new(0, Theme.SidebarWidth, 1, -46),
@@ -245,7 +237,6 @@ function NebulaUI:CreateWindow(windowTitle)
         "ContentArea"
     )
 
-    -- Gerenciamento de Tabs
     local allTabs = {}
     local activeTab = nil
 
@@ -282,97 +273,13 @@ function NebulaUI:CreateWindow(windowTitle)
         tab.indicator.BackgroundTransparency = 0
     end
 
-    local function CreateTab(tabName, tabIcon)
-        local tabData = {}
-
-        local button = Instance.new("TextButton")
-        button.Size = UDim2.new(1, 0, 0, 58)
-        button.BackgroundColor3 = Theme.SidebarBG
-        button.Text = ""
-        button.BorderSizePixel = 0
-        button.AutoButtonColor = false
-        button.Parent = TabListFrame
-        CreateCorner(button, 9)
-
-        local indicator = CreateFrame(button, UDim2.new(0, 3, 0, 28), UDim2.new(0, 0, 0.5, -14), Theme.Accent, "Indicator")
-        CreateCorner(indicator, 2)
-        indicator.BackgroundTransparency = 1
-
-        local icon = CreateLabel(button, tabIcon or tabName:sub(1, 1), UDim2.new(1, 0, 0, 24), Theme.SubText, "Icon")
-        icon.Position = UDim2.new(0, 0, 0, 7)
-        icon.TextXAlignment = Enum.TextXAlignment.Center
-        icon.TextSize = 17
-        icon.Font = Enum.Font.GothamBold
-
-        local label = CreateLabel(button, tabName, UDim2.new(1, 0, 0, 13), Theme.SubText, "Label")
-        label.Position = UDim2.new(0, 0, 0, 33)
-        label.TextXAlignment = Enum.TextXAlignment.Center
-        label.TextSize = 10
-        label.Font = Enum.Font.Gotham
-
-        local content = CreateScrollFrame(ContentArea)
-        content.Visible = false
-
-        tabData.button = button
-        tabData.label = label
-        tabData.icon = icon
-        tabData.indicator = indicator
-        tabData.content = content
-        tabData.name = tabName
-
-        table.insert(allTabs, tabData)
-        button.Activated:Connect(function()
-            SelectTab(tabData)
-        end)
-
-        if #allTabs == 1 then
-            task.defer(function()
-                SelectTab(tabData)
-            end)
-        end
-
-        -- >>> EXPOR FUNÇÕES AQUI <<<
-        tabData.AddSection = function(text)
-            AddSection(tabData, text)
-        end
-
-        tabData.AddToggle = function(label, desc, default, callback)
-            return AddToggle(tabData, label, desc, default, callback)
-        end
-
-        tabData.AddSlider = function(label, min, max, default, callback)
-            return AddSlider(tabData, label, min, max, default, callback)
-        end
-
-        tabData.AddButton = function(label, btnText, callback)
-            return AddButton(tabData, label, btnText, callback)
-        end
-
-        tabData.AddTextBox = function(label, placeholder, callback)
-            return AddTextBox(tabData, label, placeholder, callback)
-        end
-
-        tabData.AddDropdown = function(label, options, default, callback)
-            return AddDropdown(tabData, label, options, default, callback)
-        end
-
-        tabData.AddMultiSelect = function(label, options, defaults, callback)
-            return AddMultiSelect(tabData, label, options, defaults, callback)
-        end
-
-        return tabData
-    end
-
-    -- Adicionar seção
+    -- Funções de elementos (definidas antes de CreateTab para evitar problema de escopo)
     local function AddSection(tabData, sectionText)
         local sectionFrame = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 20), nil, Color3.new(0, 0, 0), "Section_" .. sectionText)
         sectionFrame.BackgroundTransparency = 1
-
         CreateFrame(sectionFrame, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 0.5, 0), Theme.Border, "Line")
-
         local labelBackground = CreateFrame(sectionFrame, UDim2.new(0, 0, 1, 0), UDim2.new(0, 6, 0, 0), Theme.Background, "LabelBG")
         labelBackground.AutomaticSize = Enum.AutomaticSize.X
-
         local sectionLabel = Instance.new("TextLabel")
         sectionLabel.BackgroundTransparency = 1
         sectionLabel.AutomaticSize = Enum.AutomaticSize.X
@@ -384,16 +291,13 @@ function NebulaUI:CreateWindow(windowTitle)
         sectionLabel.Parent = labelBackground
     end
 
-    -- Toggle
     local function AddToggle(tabData, labelText, description, default, callback)
         local state = default or false
         local height = description and 58 or 46
-
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, height), nil, Theme.ElementBG, "Toggle_" .. labelText)
         CreateCorner(container, 9)
         CreatePadding(container, 8, 10, 8, 10)
         CreateStroke(container, Theme.Border, 1)
-
         CreateLabel(container, labelText, UDim2.new(1, -60, 0, 16), Theme.Text)
         if description then
             local descLabel = CreateLabel(container, description, UDim2.new(1, -60, 0, 13), Theme.SubText, "Description")
@@ -401,80 +305,58 @@ function NebulaUI:CreateWindow(windowTitle)
             descLabel.TextSize = 11
             descLabel.Font = Enum.Font.Gotham
         end
-
         local hitbox = Instance.new("TextButton")
         hitbox.Size = UDim2.new(1, 0, 1, 0)
         hitbox.BackgroundTransparency = 1
         hitbox.Text = ""
         hitbox.Parent = container
-
         local track = CreateFrame(hitbox, UDim2.new(0, 42, 0, 24), UDim2.new(1, -42, 0.5, -12), state and Theme.ToggleOn or Theme.ToggleOff, "Track")
         CreateCorner(track, 12)
-
         local knob = CreateFrame(track, UDim2.new(0, 18, 0, 18), UDim2.new(0, state and 21 or 3, 0.5, -9), Color3.new(1, 1, 1), "Knob")
         CreateCorner(knob, 9)
-
         local function setState(value)
             state = value
             TweenObject(track, { BackgroundColor3 = state and Theme.ToggleOn or Theme.ToggleOff }, 0.18)
             TweenObject(knob, { Position = UDim2.new(0, state and 21 or 3, 0.5, -9) }, 0.18, Enum.EasingStyle.Back)
             if callback then callback(state) end
         end
-
         hitbox.Activated:Connect(function()
             setState(not state)
         end)
-
-        local element = {
-            Set = setState,
-            Get = function() return state end
-        }
-        table.insert(Window.RegisteredOptions, { label = labelText, element = element })
-        return element
+        return { Set = setState, Get = function() return state end }
     end
 
-    -- Slider
     local function AddSlider(tabData, labelText, minValue, maxValue, defaultValue, callback)
         minValue = minValue or 0
         maxValue = maxValue or 100
         local currentValue = math.clamp(defaultValue or minValue, minValue, maxValue)
-
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 58), nil, Theme.ElementBG, "Slider_" .. labelText)
         CreateCorner(container, 9)
         CreatePadding(container, 8, 10, 8, 10)
         CreateStroke(container, Theme.Border, 1)
-
         local row = CreateFrame(container, UDim2.new(1, 0, 0, 16), nil, Color3.new(0, 0, 0), "Row")
         row.BackgroundTransparency = 1
-
         CreateLabel(row, labelText, UDim2.new(0.7, 0, 1, 0), Theme.Text).TextSize = 13
-
         local valueLabel = CreateLabel(row, tostring(currentValue), UDim2.new(0.3, 0, 1, 0), Theme.Accent, "Value")
         valueLabel.Position = UDim2.new(0.7, 0, 0, 0)
         valueLabel.TextXAlignment = Enum.TextXAlignment.Right
         valueLabel.TextSize = 13
         valueLabel.Font = Enum.Font.GothamBold
-
         local track = CreateFrame(container, UDim2.new(1, 0, 0, 5), UDim2.new(0, 0, 0, 30), Color3.fromRGB(35, 35, 50), "Track")
         CreateCorner(track, 3)
-
         local initialPercent = (currentValue - minValue) / (maxValue - minValue)
         local fill = CreateFrame(track, UDim2.new(initialPercent, 0, 1, 0), nil, Theme.Accent, "Fill")
         CreateCorner(fill, 3)
-
         local knob = CreateFrame(track, UDim2.new(0, 14, 0, 14), UDim2.new(initialPercent, -7, 0.5, -7), Color3.new(1, 1, 1), "Knob")
         CreateCorner(knob, 7)
-        local knobStroke = CreateStroke(knob, Theme.Accent, 2)
-
+        CreateStroke(knob, Theme.Accent, 2)
         local hitbox = Instance.new("TextButton")
         hitbox.Size = UDim2.new(1, 0, 0, 26)
         hitbox.Position = UDim2.new(0, 0, 0, 20)
         hitbox.BackgroundTransparency = 1
         hitbox.Text = ""
         hitbox.Parent = container
-
         local sliding = false
-
         local function updateValue(inputX)
             local percent = math.clamp((inputX - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
             currentValue = math.round(minValue + (maxValue - minValue) * percent)
@@ -484,7 +366,6 @@ function NebulaUI:CreateWindow(windowTitle)
             valueLabel.Text = tostring(currentValue)
             if callback then callback(currentValue) end
         end
-
         hitbox.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
                 sliding = true
@@ -501,8 +382,7 @@ function NebulaUI:CreateWindow(windowTitle)
                 sliding = false
             end
         end)
-
-        local element = {
+        return {
             Get = function() return currentValue end,
             Set = function(value)
                 currentValue = math.clamp(value, minValue, maxValue)
@@ -512,32 +392,25 @@ function NebulaUI:CreateWindow(windowTitle)
                 valueLabel.Text = tostring(currentValue)
             end
         }
-        table.insert(Window.RegisteredOptions, { label = labelText, element = element })
-        return element
     end
 
-    -- Button
     local function AddButton(tabData, labelText, buttonText, callback)
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 44), nil, Theme.ElementBG, "Button_" .. labelText)
         CreateCorner(container, 9)
         CreatePadding(container, 8, 10, 8, 10)
         CreateStroke(container, Theme.Border, 1)
-
         CreateLabel(container, labelText, UDim2.new(0.6, 0, 1, 0), Theme.Text).TextSize = 13
-
         local buttonVisual = CreateFrame(container, UDim2.new(0, 80, 1, -8), UDim2.new(1, -80, 0, 4), Theme.Accent, "ButtonVisual")
         CreateCorner(buttonVisual, 7)
         local buttonLabel = CreateLabel(buttonVisual, buttonText or "Run", UDim2.new(1, 0, 1, 0), Color3.fromRGB(10, 10, 20), "ButtonLabel")
         buttonLabel.TextXAlignment = Enum.TextXAlignment.Center
         buttonLabel.TextSize = 12
         buttonLabel.Font = Enum.Font.GothamBold
-
         local hitbox = Instance.new("TextButton")
         hitbox.Size = UDim2.new(1, 0, 1, 0)
         hitbox.BackgroundTransparency = 1
         hitbox.Text = ""
         hitbox.Parent = container
-
         hitbox.Activated:Connect(function()
             TweenObject(buttonVisual, { BackgroundColor3 = Color3.fromRGB(70, 130, 200) }, 0.08)
             task.delay(0.15, function()
@@ -545,23 +418,18 @@ function NebulaUI:CreateWindow(windowTitle)
             end)
             if callback then callback() end
         end)
-
         return hitbox
     end
 
-    -- TextBox
     local function AddTextBox(tabData, labelText, placeholderText, callback)
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 66), nil, Theme.ElementBG, "TextBox_" .. labelText)
         CreateCorner(container, 9)
         CreatePadding(container, 8, 10, 8, 10)
         CreateStroke(container, Theme.Border, 1)
-
         CreateLabel(container, labelText, UDim2.new(1, 0, 0, 15), Theme.Text).TextSize = 12
-
         local inputBackground = CreateFrame(container, UDim2.new(1, 0, 0, 28), UDim2.new(0, 0, 0, 20), Color3.fromRGB(16, 16, 22), "InputBackground")
         CreateCorner(inputBackground, 7)
         local inputStroke = CreateStroke(inputBackground, Theme.Border, 1)
-
         local textBox = Instance.new("TextBox")
         textBox.Size = UDim2.new(1, -16, 1, 0)
         textBox.Position = UDim2.new(0, 8, 0, 0)
@@ -575,7 +443,6 @@ function NebulaUI:CreateWindow(windowTitle)
         textBox.TextXAlignment = Enum.TextXAlignment.Left
         textBox.ClearTextOnFocus = false
         textBox.Parent = inputBackground
-
         textBox.Focused:Connect(function()
             TweenObject(inputStroke, { Color = Theme.Accent }, 0.15)
         end)
@@ -583,23 +450,18 @@ function NebulaUI:CreateWindow(windowTitle)
             TweenObject(inputStroke, { Color = Theme.Border }, 0.15)
             if callback then callback(textBox.Text, enterPressed) end
         end)
-
         return textBox
     end
 
-    -- Dropdown (seleção única)
     local function AddDropdown(tabData, labelText, options, defaultOption, callback)
         local selectedOption = defaultOption or options[1] or ""
         local isOpen = false
         local listFrame = nil
-
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 44), nil, Theme.ElementBG, "Dropdown_" .. labelText)
         CreateCorner(container, 9)
         CreatePadding(container, 8, 10, 8, 10)
         CreateStroke(container, Theme.Border, 1)
-
         CreateLabel(container, labelText, UDim2.new(0.48, 0, 1, 0), Theme.Text).TextSize = 13
-
         local selectButton = Instance.new("TextButton")
         selectButton.Size = UDim2.new(0.49, 0, 1, -8)
         selectButton.Position = UDim2.new(0.51, 0, 0, 4)
@@ -613,7 +475,6 @@ function NebulaUI:CreateWindow(windowTitle)
         selectButton.Parent = container
         CreateCorner(selectButton, 7)
         CreateStroke(selectButton, Theme.Border, 1)
-
         local arrowLabel = CreateLabel(selectButton, "▾", UDim2.new(0, 16, 1, 0), Theme.SubText, "Arrow")
         arrowLabel.Position = UDim2.new(1, -18, 0, 0)
         arrowLabel.TextXAlignment = Enum.TextXAlignment.Center
@@ -686,7 +547,7 @@ function NebulaUI:CreateWindow(windowTitle)
             if isOpen then closeDropdown() else openDropdown() end
         end)
 
-        local element = {
+        return {
             Get = function() return selectedOption end,
             Set = function(value)
                 selectedOption = value
@@ -694,11 +555,8 @@ function NebulaUI:CreateWindow(windowTitle)
             end,
             Close = closeDropdown
         }
-        table.insert(Window.RegisteredOptions, { label = labelText, element = element })
-        return element
     end
 
-    -- MultiSelect (dropdown com checkboxes)
     local function AddMultiSelect(tabData, labelText, options, defaultOptions, callback)
         local selectedOptions = {}
         for _, value in ipairs(defaultOptions or {}) do
@@ -721,7 +579,6 @@ function NebulaUI:CreateWindow(windowTitle)
         CreateCorner(container, 9)
         CreatePadding(container, 8, 10, 8, 10)
         CreateStroke(container, Theme.Border, 1)
-
         CreateLabel(container, labelText, UDim2.new(0.48, 0, 1, 0), Theme.Text).TextSize = 13
 
         local selectButton = Instance.new("TextButton")
@@ -851,7 +708,7 @@ function NebulaUI:CreateWindow(windowTitle)
             if isOpen then closeMultiSelect() else openMultiSelect() end
         end)
 
-        local element = {
+        return {
             Get = function()
                 local selectedList = {}
                 for _, option in ipairs(options) do
@@ -861,76 +718,74 @@ function NebulaUI:CreateWindow(windowTitle)
             end,
             Close = closeMultiSelect
         }
-        table.insert(Window.RegisteredOptions, { label = labelText, element = element })
-        return element
     end
 
-    -- Sistema de configurações (salvar/carregar)
-    local savedConfigs = {}
+    -- Criação de abas (agora as funções já estão definidas)
+    local function CreateTab(tabName, tabIcon)
+        local tabData = {}
 
-    local function CreateConfigTab()
-        local configTab = CreateTab("Config", "⚙")
-        AddSection(configTab, "Gerenciar Config")
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(1, 0, 0, 58)
+        button.BackgroundColor3 = Theme.SidebarBG
+        button.Text = ""
+        button.BorderSizePixel = 0
+        button.AutoButtonColor = false
+        button.Parent = TabListFrame
+        CreateCorner(button, 9)
 
-        local nameTextBox = AddTextBox(configTab, "Nome da configuração", "Ex: MeuSetup", nil)
+        local indicator = CreateFrame(button, UDim2.new(0, 3, 0, 28), UDim2.new(0, 0, 0.5, -14), Theme.Accent, "Indicator")
+        CreateCorner(indicator, 2)
+        indicator.BackgroundTransparency = 1
 
-        AddButton(configTab, "Salvar config atual", "💾 Salvar", function()
-            local configName = (nameTextBox.Text ~= "" and nameTextBox.Text) or ("Config " .. tostring(#savedConfigs + 1))
-            local snapshot = {}
-            for _, registered in ipairs(Window.RegisteredOptions) do
-                snapshot[registered.label] = registered.element.Get()
-            end
-            savedConfigs[configName] = snapshot
-            print("[NebulaUI] Salvo: " .. configName)
+        local icon = CreateLabel(button, tabIcon or tabName:sub(1, 1), UDim2.new(1, 0, 0, 24), Theme.SubText, "Icon")
+        icon.Position = UDim2.new(0, 0, 0, 7)
+        icon.TextXAlignment = Enum.TextXAlignment.Center
+        icon.TextSize = 17
+        icon.Font = Enum.Font.GothamBold
+
+        local label = CreateLabel(button, tabName, UDim2.new(1, 0, 0, 13), Theme.SubText, "Label")
+        label.Position = UDim2.new(0, 0, 0, 33)
+        label.TextXAlignment = Enum.TextXAlignment.Center
+        label.TextSize = 10
+        label.Font = Enum.Font.Gotham
+
+        local content = CreateScrollFrame(ContentArea)
+        content.Visible = false
+
+        tabData.button = button
+        tabData.label = label
+        tabData.icon = icon
+        tabData.indicator = indicator
+        tabData.content = content
+        tabData.name = tabName
+
+        table.insert(allTabs, tabData)
+        button.Activated:Connect(function()
+            SelectTab(tabData)
         end)
 
-        AddSection(configTab, "Configs Salvas")
+        if #allTabs == 1 then
+            task.defer(function()
+                SelectTab(tabData)
+            end)
+        end
 
-        local configNames = {"(nenhuma)"}
-        local configDropdown = AddDropdown(configTab, "Selecionar", configNames, "(nenhuma)", nil)
+        -- Expor funções
+        tabData.AddSection = function(text) AddSection(tabData, text) end
+        tabData.AddToggle = function(label, desc, default, callback) return AddToggle(tabData, label, desc, default, callback) end
+        tabData.AddSlider = function(label, min, max, default, callback) return AddSlider(tabData, label, min, max, default, callback) end
+        tabData.AddButton = function(label, btnText, callback) return AddButton(tabData, label, btnText, callback) end
+        tabData.AddTextBox = function(label, placeholder, callback) return AddTextBox(tabData, label, placeholder, callback) end
+        tabData.AddDropdown = function(label, options, default, callback) return AddDropdown(tabData, label, options, default, callback) end
+        tabData.AddMultiSelect = function(label, options, defaults, callback) return AddMultiSelect(tabData, label, options, defaults, callback) end
 
-        task.spawn(function()
-            while task.wait(1.5) do
-                if not ScreenGui.Parent then break end
-                local names = {"(nenhuma)"}
-                for configName in pairs(savedConfigs) do
-                    table.insert(names, configName)
-                end
-                configDropdown.Set(configDropdown.Get()) -- mantém
-            end
-        end)
-
-        AddButton(configTab, "Carregar selecionada", "📂 Carregar", function()
-            local selected = configDropdown.Get()
-            if selected == "(nenhuma)" or not savedConfigs[selected] then
-                print("[NebulaUI] Nenhuma config selecionada.")
-                return
-            end
-            for _, registered in ipairs(Window.RegisteredOptions) do
-                local value = savedConfigs[selected][registered.label]
-                if value ~= nil then
-                    registered.element.Set(value)
-                end
-            end
-            print("[NebulaUI] Carregado: " .. selected)
-        end)
-
-        AddButton(configTab, "Deletar selecionada", "🗑 Deletar", function()
-            local selected = configDropdown.Get()
-            if selected == "(nenhuma)" or not savedConfigs[selected] then return end
-            savedConfigs[selected] = nil
-            configDropdown.Set("(nenhuma)")
-            print("[NebulaUI] Deletado: " .. selected)
-        end)
-
-        return configTab
+        return tabData
     end
 
     -- Animação de entrada
     WindowFrame.ClipsDescendants = true
     WindowFrame.Size = UDim2.new(0, Theme.WindowWidth, 0, 0)
     Shadow.ImageTransparency = 1
-
     TweenObject(WindowFrame, { Size = UDim2.new(0, Theme.WindowWidth, 0, Theme.WindowHeight) }, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     TweenObject(Shadow, { ImageTransparency = 0.55 }, 0.35)
     task.delay(0.42, function()
@@ -940,10 +795,6 @@ function NebulaUI:CreateWindow(windowTitle)
     -- Métodos públicos
     function Window:CreateTab(tabName, icon)
         return CreateTab(tabName, icon)
-    end
-
-    function Window:CreateConfigTab()
-        return CreateConfigTab()
     end
 
     function Window:Notify(title, message, duration)
