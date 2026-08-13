@@ -324,7 +324,7 @@ function NebulaUI:CreateWindow(windowTitle)
             state = value
             TweenObject(track, { BackgroundColor3 = state and Theme.ToggleOn or Theme.ToggleOff }, 0.18)
             TweenObject(knob, { Position = UDim2.new(0, state and 21 or 3, 0.5, -9) }, 0.18, Enum.EasingStyle.Back)
-            if callback then callback(state) end
+            if type(callback) == "function" then callback(State) end
         end
         hitbox.Activated:Connect(function()
             setState(not state)
@@ -372,7 +372,9 @@ function NebulaUI:CreateWindow(windowTitle)
             fill.Size = UDim2.new(finalPercent, 0, 1, 0)
             knob.Position = UDim2.new(finalPercent, -7, 0.5, -7)
             valueLabel.Text = tostring(currentValue)
-            if callback then callback(currentValue) end
+            if type(callback) == "function" then 
+            callback(currentValue)
+            end
         end
         hitbox.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -426,7 +428,7 @@ function NebulaUI:CreateWindow(windowTitle)
             task.delay(0.15, function()
                 TweenObject(buttonVisual, { BackgroundColor3 = Theme.Accent }, 0.15)
             end)
-            if callback then callback() end
+            if type(callback) == "function" then callback() end
         end)
         return hitbox
     end
@@ -460,7 +462,7 @@ function NebulaUI:CreateWindow(windowTitle)
         end)
         textBox.FocusLost:Connect(function(enterPressed)
             TweenObject(inputStroke, { Color = Theme.Border }, 0.15)
-            if callback then callback(textBox.Text, enterPressed) end
+            if type(callback) == "function" then callback(textBox.Text, enterPressed) end
         end)
         return textBox
     end
@@ -542,7 +544,7 @@ function NebulaUI:CreateWindow(windowTitle)
                         selectedOption = option
                         selectButton.Text = option
                         closeDropdown()
-                        if callback then callback(option) end
+                        if type(callback) == "function" then callback(option) end
                     end)
                 end
             end
