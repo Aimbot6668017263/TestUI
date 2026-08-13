@@ -324,7 +324,7 @@ function NebulaUI:CreateWindow(windowTitle)
             state = value
             TweenObject(track, { BackgroundColor3 = state and Theme.ToggleOn or Theme.ToggleOff }, 0.18)
             TweenObject(knob, { Position = UDim2.new(0, state and 21 or 3, 0.5, -9) }, 0.18, Enum.EasingStyle.Back)
-            if type(callback) == "function" then callback(State) end
+            if type(callback) == "function" then callback(state) end
         end
         hitbox.Activated:Connect(function()
             setState(not state)
@@ -372,9 +372,7 @@ function NebulaUI:CreateWindow(windowTitle)
             fill.Size = UDim2.new(finalPercent, 0, 1, 0)
             knob.Position = UDim2.new(finalPercent, -7, 0.5, -7)
             valueLabel.Text = tostring(currentValue)
-            if type(callback) == "function" then 
-            callback(currentValue)
-            end
+            if type(callback) == "function" then callback(currentValue) end
         end
         hitbox.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
