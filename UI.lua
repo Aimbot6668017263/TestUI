@@ -23,7 +23,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Tema padrão
 local Theme = {
-    Accent      = Color3.fromRGB(100, 180, 255), -- Azul claro
+    Accent      = Color3.fromRGB(100, 180, 255),
     Background  = Color3.fromRGB(13, 13, 18),
     SidebarBG   = Color3.fromRGB(9, 9, 13),
     ElementBG   = Color3.fromRGB(22, 22, 32),
@@ -331,6 +331,35 @@ function NebulaUI:CreateWindow(windowTitle)
             end)
         end
 
+        -- >>> EXPOR FUNÇÕES AQUI <<<
+        tabData.AddSection = function(text)
+            AddSection(tabData, text)
+        end
+
+        tabData.AddToggle = function(label, desc, default, callback)
+            return AddToggle(tabData, label, desc, default, callback)
+        end
+
+        tabData.AddSlider = function(label, min, max, default, callback)
+            return AddSlider(tabData, label, min, max, default, callback)
+        end
+
+        tabData.AddButton = function(label, btnText, callback)
+            return AddButton(tabData, label, btnText, callback)
+        end
+
+        tabData.AddTextBox = function(label, placeholder, callback)
+            return AddTextBox(tabData, label, placeholder, callback)
+        end
+
+        tabData.AddDropdown = function(label, options, default, callback)
+            return AddDropdown(tabData, label, options, default, callback)
+        end
+
+        tabData.AddMultiSelect = function(label, options, defaults, callback)
+            return AddMultiSelect(tabData, label, options, defaults, callback)
+        end
+
         return tabData
     end
 
@@ -400,7 +429,7 @@ function NebulaUI:CreateWindow(windowTitle)
             Set = setState,
             Get = function() return state end
         }
-        table.insert(Window.RegisteredOptions, { element = element })
+        table.insert(Window.RegisteredOptions, { label = labelText, element = element })
         return element
     end
 
@@ -483,7 +512,7 @@ function NebulaUI:CreateWindow(windowTitle)
                 valueLabel.Text = tostring(currentValue)
             end
         }
-        table.insert(Window.RegisteredOptions, { element = element })
+        table.insert(Window.RegisteredOptions, { label = labelText, element = element })
         return element
     end
 
@@ -665,7 +694,7 @@ function NebulaUI:CreateWindow(windowTitle)
             end,
             Close = closeDropdown
         }
-        table.insert(Window.RegisteredOptions, { element = element })
+        table.insert(Window.RegisteredOptions, { label = labelText, element = element })
         return element
     end
 
@@ -832,7 +861,7 @@ function NebulaUI:CreateWindow(windowTitle)
             end,
             Close = closeMultiSelect
         }
-        table.insert(Window.RegisteredOptions, { element = element })
+        table.insert(Window.RegisteredOptions, { label = labelText, element = element })
         return element
     end
 
@@ -867,8 +896,7 @@ function NebulaUI:CreateWindow(windowTitle)
                 for configName in pairs(savedConfigs) do
                     table.insert(names, configName)
                 end
-                -- Atualiza a lista interna (simplificado: apenas mantém seleção)
-                configDropdown.Set(configDropdown.Get())
+                configDropdown.Set(configDropdown.Get()) -- mantém
             end
         end)
 
@@ -919,7 +947,6 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     function Window:Notify(title, message, duration)
-        -- Notificação simples (opcional)
         local notificationFrame = CreateFrame(ScreenGui, UDim2.new(0, 200, 0, 60), UDim2.new(1, -10, 1, -60), Theme.ElementBG, "Notification")
         CreateCorner(notificationFrame, 8)
         CreateStroke(notificationFrame, Theme.Accent, 1)
