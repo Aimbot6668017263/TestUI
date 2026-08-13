@@ -332,11 +332,12 @@ function NebulaUI:CreateWindow(windowTitle)
         return { Set = setState, Get = function() return state end }
     end
 
-    local function AddSlider(tabData, labelText, minValue, maxValue, defaultValue, callback)
+        local function AddSlider(tabData, labelText, minValue, maxValue, defaultValue, callback)
         labelText = tostring(labelText)
-        minValue = minValue or 0
-        maxValue = maxValue or 100
-        local currentValue = math.clamp(defaultValue or minValue, minValue, maxValue)
+        minValue = tonumber(minValue) or 0
+        maxValue = tonumber(maxValue) or 100
+        defaultValue = tonumber(defaultValue) or minValue
+        local currentValue = math.clamp(defaultValue, minValue, maxValue)
         local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 58), nil, Theme.ElementBG, "Slider_" .. labelText)
         CreateCorner(container, 9)
         CreatePadding(container, 8, 10, 8, 10)
