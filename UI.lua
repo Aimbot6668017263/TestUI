@@ -5,8 +5,9 @@
     - Fonte dos itens aumentada (13px)
     - Correção de bugs com "table: 0x..." nas opções
 ]]
+local NebulaUI = { __VERSION = "1.3" }
 
-local SCRIPT_VERSION = "1.3" -- Atualize esse número sempre que mexer no GitHub
+-- local SCRIPT_VERSION = "1.3" -- Atualize esse número sempre que mexer no GitHub
 
 local NebulaUI = {}
 NebulaUI.__index = NebulaUI
