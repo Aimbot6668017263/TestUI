@@ -1,14 +1,12 @@
 --[[
-    NebulaUI v1.2 - Correções Finais
-    - Aumentado o tamanho máximo da lista
-    - Lista posicionada exatamente abaixo do botão
-    - Lista fecha automaticamente ao trocar de Aba
-    - Adicionado fechamento ao clicar em qualquer lugar fora da lista
+    NebulaUI v1.3 - Ajustes Finais
+    - Posição da lista ajustada (+8px abaixo)
+    - Tamanho da lista aumentada (até 8 itens)
+    - Fonte dos itens aumentada (13px)
+    - Correção de bugs com "table: 0x..." nas opções
 ]]
---[[
-    NebulaUI v1.2
-]]
-local SCRIPT_VERSION = "1.2" -- Atualize esse número sempre que mexer no GitHub
+
+local SCRIPT_VERSION = "1.3" -- Atualize esse número sempre que mexer no GitHub
 
 local NebulaUI = {}
 NebulaUI.__index = NebulaUI
@@ -267,7 +265,7 @@ function NebulaUI:CreateWindow(windowTitle)
     local function SelectTab(tab)
         if activeTab == tab then return end
         
-        -- CORREÇÃO: Fecha qualquer lista aberta ao trocar de Aba
+        -- Fecha qualquer lista aberta ao trocar de Aba
         if Window.OpenDropdown then
             Window.OpenDropdown()
         end
@@ -289,9 +287,7 @@ function NebulaUI:CreateWindow(windowTitle)
 
     -- Funções de elementos
     local function AddSection(tabData, sectionText)
-        if type(sectionText) ~= "string" then
-            sectionText = tostring(sectionText)
-        end
+        sectionText = tostring(sectionText) -- Corrige bug de "Table: 0x..." no título
         local sectionFrame = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 20), nil, Color3.new(0, 0, 0), "Section_" .. sectionText)
         sectionFrame.BackgroundTransparency = 1
         CreateFrame(sectionFrame, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 0.5, 0), Theme.Border, "Line")
@@ -479,12 +475,22 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     -- ==============================================================
-    -- DROPDOWN CORRIGIDO E MELHORADO
+    -- DROPDOWN CORRIGIDO E AUMENTADO
     -- ==============================================================
     local function AddDropdown(tabData, labelText, options, defaultOption, callback)
         labelText = tostring(labelText)
         if type(options) ~= "table" then options = {} end
-        local selectedOption = tostring(defaultOption or options[1] or "")
+        
+        -- Segurança: Evita o erro de exibir "table: 0x..." no botão caso passe uma tabela no default
+        local selectedOption = ""
+        if type(defaultOption) == "string" then
+            selectedOption = defaultOption
+        elseif type(options[1]) == "string" then
+            selectedOption = options[1]
+        else
+            selectedOption = "Nenhum"
+        end
+        
         local isOpen = false
         local listFrame = nil
 
@@ -521,7 +527,6 @@ function NebulaUI:CreateWindow(windowTitle)
                 TweenObject(arrowLabel, { TextColor3 = Theme.SubText }, 0.15)
                 Window.OpenDropdown = nil
                 
-                -- Desconecta o evento de clique global quando a lista fecha
                 if Window.CloseClickConnection then
                     Window.CloseClickConnection:Disconnect()
                     Window.CloseClickConnection = nil
@@ -536,8 +541,8 @@ function NebulaUI:CreateWindow(windowTitle)
             Window.OpenDropdown = closeDropdown
 
             if not listFrame then
-                -- Aumentei o limite máximo de 5 para 6 itens
-                local listHeight = math.min(#options, 6) * 34 + 8
+                -- AUMENTEI O TAMANHO: Até 8 itens, item com 36px de altura, fonte 13
+                local listHeight = math.min(#options, 8) * 38 + 8
                 listFrame = CreateFrame(ScreenGui, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "DropdownList")
                 CreateCorner(listFrame, 9)
                 CreateStroke(listFrame, Theme.Border, 1)
@@ -546,13 +551,13 @@ function NebulaUI:CreateWindow(windowTitle)
                 CreatePadding(listFrame, 4, 4, 4, 4)
 
                 for _, opt in ipairs(options) do
-                    local option = tostring(opt) -- Conversão forçada para string
+                    local option = tostring(opt)
                     local optionButton = Instance.new("TextButton")
-                    optionButton.Size = UDim2.new(1, 0, 0, 30)
+                    optionButton.Size = UDim2.new(1, 0, 0, 36) -- Altura maior
                     optionButton.BackgroundColor3 = Theme.ElementBG
                     optionButton.Text = option
                     optionButton.TextColor3 = (option == selectedOption) and Theme.Accent or Theme.Text
-                    optionButton.TextSize = 12
+                    optionButton.TextSize = 13 -- Fonte maior
                     optionButton.Font = Enum.Font.GothamMedium
                     optionButton.BorderSizePixel = 0
                     optionButton.ZIndex = 101
@@ -575,17 +580,16 @@ function NebulaUI:CreateWindow(windowTitle)
                 end
             end
 
-            -- Posicionamento exato abaixo do botão usando coordenadas Absolutas
+            -- Posicionamento mais abaixo (+8px)
             local absoluteX = selectButton.AbsolutePosition.X
-            local absoluteY = selectButton.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
+            local absoluteY = selectButton.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 8
             listFrame.Position = UDim2.new(0, absoluteX, 0, absoluteY)
-            listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 6) * 34 + 8)
+            listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 8) * 38 + 8)
             
             listFrame.Visible = true
             isOpen = true
             TweenObject(arrowLabel, { TextColor3 = Theme.Accent }, 0.15)
 
-            -- Implementação do "Fechar ao clicar fora"
             if Window.CloseClickConnection then
                 Window.CloseClickConnection:Disconnect()
                 Window.CloseClickConnection = nil
@@ -597,21 +601,18 @@ function NebulaUI:CreateWindow(windowTitle)
                     local listAbsPos = listFrame.AbsolutePosition
                     local listAbsSize = listFrame.AbsoluteSize
                     
-                    -- Verifica se clicou DENTRO da lista
                     if pos.X >= listAbsPos.X and pos.X <= listAbsPos.X + listAbsSize.X and
                        pos.Y >= listAbsPos.Y and pos.Y <= listAbsPos.Y + listAbsSize.Y then
-                        return -- Ignora, pois é um clique válido dentro da lista
+                        return
                     end
                     
-                    -- Verifica se clicou no BOTÃO do dropdown
                     local btnAbsPos = selectButton.AbsolutePosition
                     local btnAbsSize = selectButton.AbsoluteSize
                     if pos.X >= btnAbsPos.X and pos.X <= btnAbsPos.X + btnAbsSize.X and
                        pos.Y >= btnAbsPos.Y and pos.Y <= btnAbsPos.Y + btnAbsSize.Y then
-                        return -- Ignora, pois o botão tem seu próprio evento
+                        return
                     end
                     
-                    -- Se clicou em qualquer outro lugar, feche a lista
                     closeDropdown()
                 end
             end)
@@ -632,15 +633,20 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     -- ==============================================================
-    -- MULTISELECT CORRIGIDO E MELHORADO
+    -- MULTISELECT CORRIGIDO E AUMENTADO
     -- ==============================================================
     local function AddMultiSelect(tabData, labelText, options, defaultOptions, callback)
         labelText = tostring(labelText)
         if type(options) ~= "table" then options = {} end
         local selectedOptions = {}
+        
+        -- Segurança: verifica se o valor passado é string antes de adicionar
         for _, v in ipairs(defaultOptions or {}) do
-            selectedOptions[tostring(v)] = true
+            if type(v) == "string" then
+                selectedOptions[v] = true
+            end
         end
+        
         local isOpen = false
         local listFrame = nil
         local checkReferences = {}
@@ -649,7 +655,10 @@ function NebulaUI:CreateWindow(windowTitle)
             local names = {}
             for _, opt in ipairs(options) do
                 local option = tostring(opt)
-                if selectedOptions[option] then table.insert(names, option) end
+                -- Segurança para evitar "table: 0x..."
+                if string.sub(option, 1, 6) ~= "table:" and selectedOptions[option] then
+                    table.insert(names, option)
+                end
             end
             if #names == 0 then return "Nenhum" end
             return table.concat(names, ", ")
@@ -697,7 +706,6 @@ function NebulaUI:CreateWindow(windowTitle)
                     Window.OpenDropdown = nil
                 end
                 
-                -- Desconecta o evento de clique global
                 if Window.CloseClickConnection then
                     Window.CloseClickConnection:Disconnect()
                     Window.CloseClickConnection = nil
@@ -712,8 +720,8 @@ function NebulaUI:CreateWindow(windowTitle)
             Window.OpenDropdown = closeMultiSelect
 
             if not listFrame then
-                -- Aumentei o limite máximo de 5 para 6 itens
-                local listHeight = math.min(#options, 6) * 38 + 8
+                -- AUMENTEI O TAMANHO: Até 8 itens, item com 40px de altura, fonte 13
+                local listHeight = math.min(#options, 8) * 42 + 8
                 listFrame = CreateFrame(ScreenGui, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "MultiSelectList")
                 CreateCorner(listFrame, 9)
                 CreateStroke(listFrame, Theme.Border, 1)
@@ -722,8 +730,8 @@ function NebulaUI:CreateWindow(windowTitle)
                 CreatePadding(listFrame, 4, 4, 4, 4)
 
                 for _, opt in ipairs(options) do
-                    local option = tostring(opt) -- Conversão forçada para string
-                    local row = CreateFrame(listFrame, UDim2.new(1, 0, 0, 34), nil, Theme.ElementBG, "Row_" .. option)
+                    local option = tostring(opt)
+                    local row = CreateFrame(listFrame, UDim2.new(1, 0, 0, 40), nil, Theme.ElementBG, "Row_" .. option)
                     CreateCorner(row, 7)
                     row.ZIndex = 101
 
@@ -746,7 +754,7 @@ function NebulaUI:CreateWindow(windowTitle)
 
                     local optionLabel = CreateLabel(row, option, UDim2.new(1, -36, 1, 0), Theme.Text, "Label")
                     optionLabel.Position = UDim2.new(0, 34, 0, 0)
-                    optionLabel.TextSize = 12
+                    optionLabel.TextSize = 13 -- Fonte maior
                     optionLabel.ZIndex = 102
 
                     local hitbox = Instance.new("TextButton")
@@ -783,17 +791,16 @@ function NebulaUI:CreateWindow(windowTitle)
 
             syncCheckboxes()
             
-            -- Posicionamento exato abaixo do botão usando coordenadas Absolutas
+            -- Posicionamento mais abaixo (+8px)
             local absoluteX = selectButton.AbsolutePosition.X
-            local absoluteY = selectButton.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
+            local absoluteY = selectButton.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 8
             listFrame.Position = UDim2.new(0, absoluteX, 0, absoluteY)
-            listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 6) * 38 + 8)
+            listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 8) * 42 + 8)
             
             listFrame.Visible = true
             isOpen = true
             TweenObject(arrowLabel, { TextColor3 = Theme.Accent }, 0.15)
 
-            -- Implementação do "Fechar ao clicar fora"
             if Window.CloseClickConnection then
                 Window.CloseClickConnection:Disconnect()
                 Window.CloseClickConnection = nil
@@ -805,21 +812,18 @@ function NebulaUI:CreateWindow(windowTitle)
                     local listAbsPos = listFrame.AbsolutePosition
                     local listAbsSize = listFrame.AbsoluteSize
                     
-                    -- Verifica se clicou DENTRO da lista
                     if pos.X >= listAbsPos.X and pos.X <= listAbsPos.X + listAbsSize.X and
                        pos.Y >= listAbsPos.Y and pos.Y <= listAbsPos.Y + listAbsSize.Y then
-                        return -- Ignora
+                        return
                     end
                     
-                    -- Verifica se clicou no BOTÃO do MultiSelect
                     local btnAbsPos = selectButton.AbsolutePosition
                     local btnAbsSize = selectButton.AbsoluteSize
                     if pos.X >= btnAbsPos.X and pos.X <= btnAbsPos.X + btnAbsSize.X and
                        pos.Y >= btnAbsPos.Y and pos.Y <= btnAbsPos.Y + btnAbsSize.Y then
-                        return -- Ignora
+                        return
                     end
                     
-                    -- Se clicou em qualquer outro lugar, feche a lista
                     closeMultiSelect()
                 end
             end)
