@@ -141,6 +141,7 @@ function NebulaUI:CreateWindow(windowTitle)
         Theme.Background,
         "Window"
     )
+    WindowFrame.ZIndex = 10  -- Garante que a janela fique acima de outros elementos
     CreateCorner(WindowFrame, Theme.CornerRadius)
     CreateStroke(WindowFrame, Theme.Border, 1)
 
@@ -275,7 +276,6 @@ function NebulaUI:CreateWindow(windowTitle)
 
     -- Funções de elementos (definidas antes de CreateTab)
     local function AddSection(tabData, sectionText)
-        -- Garantir que sectionText seja string
         if type(sectionText) ~= "string" then
             sectionText = tostring(sectionText)
         end
@@ -332,7 +332,7 @@ function NebulaUI:CreateWindow(windowTitle)
         return { Set = setState, Get = function() return state end }
     end
 
-        local function AddSlider(tabData, labelText, minValue, maxValue, defaultValue, callback)
+    local function AddSlider(tabData, labelText, minValue, maxValue, defaultValue, callback)
         labelText = tostring(labelText)
         minValue = tonumber(minValue) or 0
         maxValue = tonumber(maxValue) or 100
@@ -393,7 +393,7 @@ function NebulaUI:CreateWindow(windowTitle)
         return {
             Get = function() return currentValue end,
             Set = function(value)
-                currentValue = math.clamp(value, minValue, maxValue)
+                currentValue = math.clamp(tonumber(value) or currentValue, minValue, maxValue)
                 local finalPercent = (currentValue - minValue) / (maxValue - minValue)
                 fill.Size = UDim2.new(finalPercent, 0, 1, 0)
                 knob.Position = UDim2.new(finalPercent, -7, 0.5, -7)
@@ -466,285 +466,278 @@ function NebulaUI:CreateWindow(windowTitle)
     end
 
     local function AddDropdown(tabData, labelText, options, defaultOption, callback)
-    labelText = tostring(labelText)
-    if type(options) ~= "table" then options = {} end
-    local selectedOption = defaultOption or options[1] or ""
-    selectedOption = tostring(selectedOption)
-    local isOpen = false
-    local listFrame = nil
+        labelText = tostring(labelText)
+        if type(options) ~= "table" then options = {} end
+        local selectedOption = defaultOption or options[1] or ""
+        selectedOption = tostring(selectedOption)
+        local isOpen = false
+        local listFrame = nil
 
-    local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 44), nil, Theme.ElementBG, "Dropdown_" .. labelText)
-    CreateCorner(container, 9)
-    CreatePadding(container, 8, 10, 8, 10)
-    CreateStroke(container, Theme.Border, 1)
+        local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 44), nil, Theme.ElementBG, "Dropdown_" .. labelText)
+        CreateCorner(container, 9)
+        CreatePadding(container, 8, 10, 8, 10)
+        CreateStroke(container, Theme.Border, 1)
 
-    CreateLabel(container, labelText, UDim2.new(0.48, 0, 1, 0), Theme.Text).TextSize = 13
+        CreateLabel(container, labelText, UDim2.new(0.48, 0, 1, 0), Theme.Text).TextSize = 13
 
-    local selectButton = Instance.new("TextButton")
-    selectButton.Size = UDim2.new(0.49, 0, 1, -8)
-    selectButton.Position = UDim2.new(0.51, 0, 0, 4)
-    selectButton.BackgroundColor3 = Theme.HoverBG
-    selectButton.Text = selectedOption
-    selectButton.TextColor3 = Theme.Accent
-    selectButton.TextSize = 11
-    selectButton.Font = Enum.Font.GothamMedium
-    selectButton.BorderSizePixel = 0
-    selectButton.TextTruncate = Enum.TextTruncate.AtEnd
-    selectButton.Parent = container
-    CreateCorner(selectButton, 7)
-    CreateStroke(selectButton, Theme.Border, 1)
+        local selectButton = Instance.new("TextButton")
+        selectButton.Size = UDim2.new(0.49, 0, 1, -8)
+        selectButton.Position = UDim2.new(0.51, 0, 0, 4)
+        selectButton.BackgroundColor3 = Theme.HoverBG
+        selectButton.Text = selectedOption
+        selectButton.TextColor3 = Theme.Accent
+        selectButton.TextSize = 11
+        selectButton.Font = Enum.Font.GothamMedium
+        selectButton.BorderSizePixel = 0
+        selectButton.TextTruncate = Enum.TextTruncate.AtEnd
+        selectButton.Parent = container
+        CreateCorner(selectButton, 7)
+        CreateStroke(selectButton, Theme.Border, 1)
 
-    local arrowLabel = CreateLabel(selectButton, "▾", UDim2.new(0, 16, 1, 0), Theme.SubText, "Arrow")
-    arrowLabel.Position = UDim2.new(1, -18, 0, 0)
-    arrowLabel.TextXAlignment = Enum.TextXAlignment.Center
-    arrowLabel.Font = Enum.Font.GothamBold
+        local arrowLabel = CreateLabel(selectButton, "▾", UDim2.new(0, 16, 1, 0), Theme.SubText, "Arrow")
+        arrowLabel.Position = UDim2.new(1, -18, 0, 0)
+        arrowLabel.TextXAlignment = Enum.TextXAlignment.Center
+        arrowLabel.Font = Enum.Font.GothamBold
 
-    local function closeDropdown()
-        isOpen = false
-        if listFrame then listFrame.Visible = false end
-        TweenObject(arrowLabel, { TextColor3 = Theme.SubText }, 0.15)
-        Window.OpenDropdown = nil
-    end
-
-    local function openDropdown()
-        if Window.OpenDropdown and Window.OpenDropdown ~= closeDropdown then
-            Window.OpenDropdown()
-        end
-        Window.OpenDropdown = closeDropdown
-
-        if not listFrame then
-            local listHeight = math.min(#options, 5) * 34 + 8
-            -- Aqui: pai é o WindowFrame, para não ser cortado pelo scroll
-            listFrame = CreateFrame(WindowFrame, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "DropdownList")
-            CreateCorner(listFrame, 9)
-            CreateStroke(listFrame, Theme.Border, 1)
-            listFrame.ZIndex = 50
-            CreateListLayout(listFrame, 2)
-            CreatePadding(listFrame, 4, 4, 4, 4)
-
-            for _, option in ipairs(options) do
-                option = tostring(option)
-                local optionButton = Instance.new("TextButton")
-                optionButton.Size = UDim2.new(1, 0, 0, 30)
-                optionButton.BackgroundColor3 = Theme.ElementBG
-                optionButton.Text = option
-                optionButton.TextColor3 = (option == selectedOption) and Theme.Accent or Theme.Text
-                optionButton.TextSize = 12
-                optionButton.Font = Enum.Font.GothamMedium
-                optionButton.BorderSizePixel = 0
-                optionButton.ZIndex = 51
-                optionButton.Parent = listFrame
-                CreateCorner(optionButton, 7)
-
-                optionButton.MouseEnter:Connect(function()
-                    TweenObject(optionButton, { BackgroundColor3 = Theme.HoverBG }, 0.1)
-                end)
-                optionButton.MouseLeave:Connect(function()
-                    TweenObject(optionButton, { BackgroundColor3 = Theme.ElementBG }, 0.1)
-                end)
-
-                optionButton.Activated:Connect(function()
-                    selectedOption = option
-                    selectButton.Text = option
-                    closeDropdown()
-                    if type(callback) == "function" then callback(option) end
-                end)
-            end
-        end
-
-        -- Posiciona a lista logo abaixo do botão, usando coordenadas absolutas da janela
-        local absoluteX = selectButton.AbsolutePosition.X - WindowFrame.AbsolutePosition.X
-        local absoluteY = selectButton.AbsolutePosition.Y - WindowFrame.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
-        listFrame.Position = UDim2.new(0, absoluteX, 0, absoluteY)
-        listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 5) * 34 + 8)
-        listFrame.Visible = true
-        isOpen = true
-        TweenObject(arrowLabel, { TextColor3 = Theme.Accent }, 0.15)
-    end
-
-    selectButton.Activated:Connect(function()
-        if isOpen then closeDropdown() else openDropdown() end
-    end)
-
-    return {
-        Get = function() return selectedOption end,
-        Set = function(value)
-            selectedOption = tostring(value)
-            selectButton.Text = selectedOption
-        end,
-        Close = closeDropdown
-    }
-end    
-
-
-    
-
-local function AddMultiSelect(tabData, labelText, options, defaultOptions, callback)
-    labelText = tostring(labelText)
-    if type(options) ~= "table" then options = {} end
-    local selectedOptions = {}
-    for _, value in ipairs(defaultOptions or {}) do
-        selectedOptions[value] = true
-    end
-    local isOpen = false
-    local listFrame = nil
-    local checkReferences = {}
-
-    local function buildButtonText()
-        local names = {}
-        for _, option in ipairs(options) do
-            if selectedOptions[option] then table.insert(names, option) end
-        end
-        if #names == 0 then return "Nenhum" end
-        return table.concat(names, ", ")
-    end
-
-    local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 44), nil, Theme.ElementBG, "MultiSelect_" .. labelText)
-    CreateCorner(container, 9)
-    CreatePadding(container, 8, 10, 8, 10)
-    CreateStroke(container, Theme.Border, 1)
-    CreateLabel(container, labelText, UDim2.new(0.48, 0, 1, 0), Theme.Text).TextSize = 13
-
-    local selectButton = Instance.new("TextButton")
-    selectButton.Size = UDim2.new(0.49, 0, 1, -8)
-    selectButton.Position = UDim2.new(0.51, 0, 0, 4)
-    selectButton.BackgroundColor3 = Theme.HoverBG
-    selectButton.Text = buildButtonText()
-    selectButton.TextColor3 = Theme.Accent
-    selectButton.TextSize = 10
-    selectButton.Font = Enum.Font.GothamMedium
-    selectButton.BorderSizePixel = 0
-    selectButton.TextTruncate = Enum.TextTruncate.AtEnd
-    selectButton.Parent = container
-    CreateCorner(selectButton, 7)
-    CreateStroke(selectButton, Theme.Border, 1)
-
-    local arrowLabel = CreateLabel(selectButton, "▾", UDim2.new(0, 16, 1, 0), Theme.SubText, "Arrow")
-    arrowLabel.Position = UDim2.new(1, -18, 0, 0)
-    arrowLabel.TextXAlignment = Enum.TextXAlignment.Center
-    arrowLabel.Font = Enum.Font.GothamBold
-
-    local function syncCheckboxes()
-        for option, references in pairs(checkReferences) do
-            local active = selectedOptions[option] == true
-            references.check.Visible = active
-            references.checkboxBackground.BackgroundColor3 = active and Color3.fromRGB(20, 40, 65) or Color3.fromRGB(20, 20, 30)
-        end
-    end
-
-    local function closeMultiSelect()
-        isOpen = false
-        if listFrame then listFrame.Visible = false end
-        TweenObject(arrowLabel, { TextColor3 = Theme.SubText }, 0.15)
-        if Window.OpenDropdown == closeMultiSelect then
+        local function closeDropdown()
+            isOpen = false
+            if listFrame then listFrame.Visible = false end
+            TweenObject(arrowLabel, { TextColor3 = Theme.SubText }, 0.15)
             Window.OpenDropdown = nil
         end
+
+        local function openDropdown()
+            if Window.OpenDropdown and Window.OpenDropdown ~= closeDropdown then
+                Window.OpenDropdown()
+            end
+            Window.OpenDropdown = closeDropdown
+
+            if not listFrame then
+                local listHeight = math.min(#options, 5) * 34 + 8
+                listFrame = CreateFrame(WindowFrame, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "DropdownList")
+                CreateCorner(listFrame, 9)
+                CreateStroke(listFrame, Theme.Border, 1)
+                listFrame.ZIndex = 100
+                CreateListLayout(listFrame, 2)
+                CreatePadding(listFrame, 4, 4, 4, 4)
+
+                for _, option in ipairs(options) do
+                    option = tostring(option)
+                    local optionButton = Instance.new("TextButton")
+                    optionButton.Size = UDim2.new(1, 0, 0, 30)
+                    optionButton.BackgroundColor3 = Theme.ElementBG
+                    optionButton.Text = option
+                    optionButton.TextColor3 = (option == selectedOption) and Theme.Accent or Theme.Text
+                    optionButton.TextSize = 12
+                    optionButton.Font = Enum.Font.GothamMedium
+                    optionButton.BorderSizePixel = 0
+                    optionButton.ZIndex = 101
+                    optionButton.Parent = listFrame
+                    CreateCorner(optionButton, 7)
+
+                    optionButton.MouseEnter:Connect(function()
+                        TweenObject(optionButton, { BackgroundColor3 = Theme.HoverBG }, 0.1)
+                    end)
+                    optionButton.MouseLeave:Connect(function()
+                        TweenObject(optionButton, { BackgroundColor3 = Theme.ElementBG }, 0.1)
+                    end)
+
+                    optionButton.Activated:Connect(function()
+                        selectedOption = option
+                        selectButton.Text = option
+                        closeDropdown()
+                        if type(callback) == "function" then callback(option) end
+                    end)
+                end
+            end
+
+            WindowFrame.ClipsDescendants = false
+            local absoluteX = selectButton.AbsolutePosition.X - WindowFrame.AbsolutePosition.X
+            local absoluteY = selectButton.AbsolutePosition.Y - WindowFrame.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
+            listFrame.Position = UDim2.new(0, absoluteX, 0, absoluteY)
+            listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 5) * 34 + 8)
+            listFrame.Visible = true
+            isOpen = true
+            TweenObject(arrowLabel, { TextColor3 = Theme.Accent }, 0.15)
+        end
+
+        selectButton.Activated:Connect(function()
+            if isOpen then closeDropdown() else openDropdown() end
+        end)
+
+        return {
+            Get = function() return selectedOption end,
+            Set = function(value)
+                selectedOption = tostring(value)
+                selectButton.Text = selectedOption
+            end,
+            Close = closeDropdown
+        }
     end
 
-    local function openMultiSelect()
-        if Window.OpenDropdown and Window.OpenDropdown ~= closeMultiSelect then
-            Window.OpenDropdown()
+    local function AddMultiSelect(tabData, labelText, options, defaultOptions, callback)
+        labelText = tostring(labelText)
+        if type(options) ~= "table" then options = {} end
+        local selectedOptions = {}
+        for _, value in ipairs(defaultOptions or {}) do
+            selectedOptions[value] = true
         end
-        Window.OpenDropdown = closeMultiSelect
+        local isOpen = false
+        local listFrame = nil
+        local checkReferences = {}
 
-        if not listFrame then
-            local listHeight = math.min(#options, 5) * 38 + 8
-            -- Pai é o WindowFrame, para não ser cortado
-            listFrame = CreateFrame(WindowFrame, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "MultiSelectList")
-            CreateCorner(listFrame, 9)
-            CreateStroke(listFrame, Theme.Border, 1)
-            listFrame.ZIndex = 50
-            CreateListLayout(listFrame, 2)
-            CreatePadding(listFrame, 4, 4, 4, 4)
-
+        local function buildButtonText()
+            local names = {}
             for _, option in ipairs(options) do
-                option = tostring(option)
-                local row = CreateFrame(listFrame, UDim2.new(1, 0, 0, 34), nil, Theme.ElementBG, "Row_" .. option)
-                CreateCorner(row, 7)
-                row.ZIndex = 51
+                if selectedOptions[option] then table.insert(names, option) end
+            end
+            if #names == 0 then return "Nenhum" end
+            return table.concat(names, ", ")
+        end
 
-                local checkboxBackground = CreateFrame(row, UDim2.new(0, 18, 0, 18), UDim2.new(0, 8, 0.5, -9), Color3.fromRGB(20, 20, 30), "CheckboxBG")
-                checkboxBackground.ZIndex = 52
-                CreateCorner(checkboxBackground, 5)
-                CreateStroke(checkboxBackground, Theme.Border, 1)
+        local container = CreateFrame(tabData.content, UDim2.new(1, 0, 0, 44), nil, Theme.ElementBG, "MultiSelect_" .. labelText)
+        CreateCorner(container, 9)
+        CreatePadding(container, 8, 10, 8, 10)
+        CreateStroke(container, Theme.Border, 1)
+        CreateLabel(container, labelText, UDim2.new(0.48, 0, 1, 0), Theme.Text).TextSize = 13
 
-                local checkLabel = CreateLabel(checkboxBackground, "✓", UDim2.new(1, 0, 1, 0), Theme.Accent, "Check")
-                checkLabel.TextXAlignment = Enum.TextXAlignment.Center
-                checkLabel.TextSize = 12
-                checkLabel.Font = Enum.Font.GothamBold
-                checkLabel.ZIndex = 53
-                checkLabel.Visible = selectedOptions[option] == true
+        local selectButton = Instance.new("TextButton")
+        selectButton.Size = UDim2.new(0.49, 0, 1, -8)
+        selectButton.Position = UDim2.new(0.51, 0, 0, 4)
+        selectButton.BackgroundColor3 = Theme.HoverBG
+        selectButton.Text = buildButtonText()
+        selectButton.TextColor3 = Theme.Accent
+        selectButton.TextSize = 10
+        selectButton.Font = Enum.Font.GothamMedium
+        selectButton.BorderSizePixel = 0
+        selectButton.TextTruncate = Enum.TextTruncate.AtEnd
+        selectButton.Parent = container
+        CreateCorner(selectButton, 7)
+        CreateStroke(selectButton, Theme.Border, 1)
 
-                checkReferences[option] = {
-                    checkboxBackground = checkboxBackground,
-                    check = checkLabel
-                }
+        local arrowLabel = CreateLabel(selectButton, "▾", UDim2.new(0, 16, 1, 0), Theme.SubText, "Arrow")
+        arrowLabel.Position = UDim2.new(1, -18, 0, 0)
+        arrowLabel.TextXAlignment = Enum.TextXAlignment.Center
+        arrowLabel.Font = Enum.Font.GothamBold
 
-                local optionLabel = CreateLabel(row, option, UDim2.new(1, -36, 1, 0), Theme.Text, "Label")
-                optionLabel.Position = UDim2.new(0, 34, 0, 0)
-                optionLabel.TextSize = 12
-                optionLabel.ZIndex = 52
+        local function syncCheckboxes()
+            for option, references in pairs(checkReferences) do
+                local active = selectedOptions[option] == true
+                references.check.Visible = active
+                references.checkboxBackground.BackgroundColor3 = active and Color3.fromRGB(20, 40, 65) or Color3.fromRGB(20, 20, 30)
+            end
+        end
 
-                local hitbox = Instance.new("TextButton")
-                hitbox.Size = UDim2.new(1, 0, 1, 0)
-                hitbox.BackgroundTransparency = 1
-                hitbox.Text = ""
-                hitbox.ZIndex = 54
-                hitbox.Parent = row
+        local function closeMultiSelect()
+            isOpen = false
+            if listFrame then listFrame.Visible = false end
+            TweenObject(arrowLabel, { TextColor3 = Theme.SubText }, 0.15)
+            if Window.OpenDropdown == closeMultiSelect then
+                Window.OpenDropdown = nil
+            end
+        end
 
-                hitbox.MouseEnter:Connect(function()
-                    TweenObject(row, { BackgroundColor3 = Theme.HoverBG }, 0.1)
-                end)
-                hitbox.MouseLeave:Connect(function()
-                    TweenObject(row, { BackgroundColor3 = Theme.ElementBG }, 0.1)
-                end)
+        local function openMultiSelect()
+            if Window.OpenDropdown and Window.OpenDropdown ~= closeMultiSelect then
+                Window.OpenDropdown()
+            end
+            Window.OpenDropdown = closeMultiSelect
 
-                hitbox.Activated:Connect(function()
-                    selectedOptions[option] = not (selectedOptions[option] == true)
-                    local active = selectedOptions[option]
-                    checkLabel.Visible = active
-                    TweenObject(checkboxBackground, { BackgroundColor3 = active and Color3.fromRGB(20, 40, 65) or Color3.fromRGB(20, 20, 30) }, 0.15)
-                    selectButton.Text = buildButtonText()
-                    if type(callback) == "function" then
-                        local selectedList = {}
-                        for _, opt in ipairs(options) do
-                            if selectedOptions[opt] then table.insert(selectedList, opt) end
+            if not listFrame then
+                local listHeight = math.min(#options, 5) * 38 + 8
+                listFrame = CreateFrame(WindowFrame, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "MultiSelectList")
+                CreateCorner(listFrame, 9)
+                CreateStroke(listFrame, Theme.Border, 1)
+                listFrame.ZIndex = 100
+                CreateListLayout(listFrame, 2)
+                CreatePadding(listFrame, 4, 4, 4, 4)
+
+                for _, option in ipairs(options) do
+                    option = tostring(option)
+                    local row = CreateFrame(listFrame, UDim2.new(1, 0, 0, 34), nil, Theme.ElementBG, "Row_" .. option)
+                    CreateCorner(row, 7)
+                    row.ZIndex = 101
+
+                    local checkboxBackground = CreateFrame(row, UDim2.new(0, 18, 0, 18), UDim2.new(0, 8, 0.5, -9), Color3.fromRGB(20, 20, 30), "CheckboxBG")
+                    checkboxBackground.ZIndex = 102
+                    CreateCorner(checkboxBackground, 5)
+                    CreateStroke(checkboxBackground, Theme.Border, 1)
+
+                    local checkLabel = CreateLabel(checkboxBackground, "✓", UDim2.new(1, 0, 1, 0), Theme.Accent, "Check")
+                    checkLabel.TextXAlignment = Enum.TextXAlignment.Center
+                    checkLabel.TextSize = 12
+                    checkLabel.Font = Enum.Font.GothamBold
+                    checkLabel.ZIndex = 103
+                    checkLabel.Visible = selectedOptions[option] == true
+
+                    checkReferences[option] = {
+                        checkboxBackground = checkboxBackground,
+                        check = checkLabel
+                    }
+
+                    local optionLabel = CreateLabel(row, option, UDim2.new(1, -36, 1, 0), Theme.Text, "Label")
+                    optionLabel.Position = UDim2.new(0, 34, 0, 0)
+                    optionLabel.TextSize = 12
+                    optionLabel.ZIndex = 102
+
+                    local hitbox = Instance.new("TextButton")
+                    hitbox.Size = UDim2.new(1, 0, 1, 0)
+                    hitbox.BackgroundTransparency = 1
+                    hitbox.Text = ""
+                    hitbox.ZIndex = 104
+                    hitbox.Parent = row
+
+                    hitbox.MouseEnter:Connect(function()
+                        TweenObject(row, { BackgroundColor3 = Theme.HoverBG }, 0.1)
+                    end)
+                    hitbox.MouseLeave:Connect(function()
+                        TweenObject(row, { BackgroundColor3 = Theme.ElementBG }, 0.1)
+                    end)
+
+                    hitbox.Activated:Connect(function()
+                        selectedOptions[option] = not (selectedOptions[option] == true)
+                        local active = selectedOptions[option]
+                        checkLabel.Visible = active
+                        TweenObject(checkboxBackground, { BackgroundColor3 = active and Color3.fromRGB(20, 40, 65) or Color3.fromRGB(20, 20, 30) }, 0.15)
+                        selectButton.Text = buildButtonText()
+                        if type(callback) == "function" then
+                            local selectedList = {}
+                            for _, opt in ipairs(options) do
+                                if selectedOptions[opt] then table.insert(selectedList, opt) end
+                            end
+                            callback(selectedList)
                         end
-                        callback(selectedList)
-                    end
-                end)
+                    end)
+                end
             end
+
+            syncCheckboxes()
+            WindowFrame.ClipsDescendants = false
+
+            local absoluteX = selectButton.AbsolutePosition.X - WindowFrame.AbsolutePosition.X
+            local absoluteY = selectButton.AbsolutePosition.Y - WindowFrame.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
+            listFrame.Position = UDim2.new(0, absoluteX, 0, absoluteY)
+            listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 5) * 38 + 8)
+            listFrame.Visible = true
+            isOpen = true
+            TweenObject(arrowLabel, { TextColor3 = Theme.Accent }, 0.15)
         end
 
-        syncCheckboxes()
+        selectButton.Activated:Connect(function()
+            if isOpen then closeMultiSelect() else openMultiSelect() end
+        end)
 
-        -- Posiciona a lista abaixo do botão
-        local absoluteX = selectButton.AbsolutePosition.X - WindowFrame.AbsolutePosition.X
-        local absoluteY = selectButton.AbsolutePosition.Y - WindowFrame.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
-        listFrame.Position = UDim2.new(0, absoluteX, 0, absoluteY)
-        listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 5) * 38 + 8)
-        listFrame.Visible = true
-        isOpen = true
-        TweenObject(arrowLabel, { TextColor3 = Theme.Accent }, 0.15)
+        return {
+            Get = function()
+                local selectedList = {}
+                for _, option in ipairs(options) do
+                    if selectedOptions[option] then table.insert(selectedList, option) end
+                end
+                return selectedList
+            end,
+            Close = closeMultiSelect
+        }
     end
-
-    selectButton.Activated:Connect(function()
-        if isOpen then closeMultiSelect() else openMultiSelect() end
-    end)
-
-    return {
-        Get = function()
-            local selectedList = {}
-            for _, option in ipairs(options) do
-                if selectedOptions[option] then table.insert(selectedList, option) end
-            end
-            return selectedList
-        end,
-        Close = closeMultiSelect
-    }
-end
-
-
 
     -- Criação de abas (agora as funções já estão definidas)
     local function CreateTab(tabName, tabIcon)
