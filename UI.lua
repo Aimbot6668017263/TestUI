@@ -5,6 +5,10 @@
     - Lista fecha automaticamente ao trocar de Aba
     - Adicionado fechamento ao clicar em qualquer lugar fora da lista
 ]]
+--[[
+    NebulaUI v1.2
+]]
+local SCRIPT_VERSION = "1.2" -- Atualize esse número sempre que mexer no GitHub
 
 local NebulaUI = {}
 NebulaUI.__index = NebulaUI
