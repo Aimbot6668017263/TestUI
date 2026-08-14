@@ -1,7 +1,7 @@
 --[[
-    NebulaUI v1.0 - Versão Estável
-    Interface mobile-first, sem CoreGui, sem binds.
-    Todas as funções são expostas na aba.
+    NebulaUI v1.1 - Versão Corrigida
+    - Corrigido erro de exibição de "table: 0x..." (adicionado tostring)
+    - Corrigido Dropdown e MultiSelect para flutuarem fora da janela (parent em ScreenGui)
 ]]
 
 local NebulaUI = {}
@@ -141,7 +141,7 @@ function NebulaUI:CreateWindow(windowTitle)
         Theme.Background,
         "Window"
     )
-    WindowFrame.ZIndex = 10  -- Garante que a janela fique acima de outros elementos
+    WindowFrame.ZIndex = 10
     CreateCorner(WindowFrame, Theme.CornerRadius)
     CreateStroke(WindowFrame, Theme.Border, 1)
 
@@ -465,11 +465,13 @@ function NebulaUI:CreateWindow(windowTitle)
         return textBox
     end
 
+    -- ==============================================================
+    -- DROPDOWN CORRIGIDO
+    -- ==============================================================
     local function AddDropdown(tabData, labelText, options, defaultOption, callback)
         labelText = tostring(labelText)
         if type(options) ~= "table" then options = {} end
-        local selectedOption = defaultOption or options[1] or ""
-        selectedOption = tostring(selectedOption)
+        local selectedOption = tostring(defaultOption or options[1] or "")
         local isOpen = false
         local listFrame = nil
 
@@ -514,15 +516,17 @@ function NebulaUI:CreateWindow(windowTitle)
 
             if not listFrame then
                 local listHeight = math.min(#options, 5) * 34 + 8
-                listFrame = CreateFrame(WindowFrame, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "DropdownList")
+                -- CORREÇÃO: Parent mudou de WindowFrame para ScreenGui
+                listFrame = CreateFrame(ScreenGui, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "DropdownList")
                 CreateCorner(listFrame, 9)
                 CreateStroke(listFrame, Theme.Border, 1)
-                listFrame.ZIndex = 100
+                listFrame.ZIndex = 100 -- Fica acima da janela
                 CreateListLayout(listFrame, 2)
                 CreatePadding(listFrame, 4, 4, 4, 4)
 
-                for _, option in ipairs(options) do
-                    option = tostring(option)
+                for _, opt in ipairs(options) do
+                    -- CORREÇÃO: Força conversão para string para evitar "table: 0x..."
+                    local option = tostring(opt)
                     local optionButton = Instance.new("TextButton")
                     optionButton.Size = UDim2.new(1, 0, 0, 30)
                     optionButton.BackgroundColor3 = Theme.ElementBG
@@ -551,9 +555,9 @@ function NebulaUI:CreateWindow(windowTitle)
                 end
             end
 
-            WindowFrame.ClipsDescendants = false
-            local absoluteX = selectButton.AbsolutePosition.X - WindowFrame.AbsolutePosition.X
-            local absoluteY = selectButton.AbsolutePosition.Y - WindowFrame.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
+            -- CORREÇÃO: Cálculo usa coordenadas absolutas da tela
+            local absoluteX = selectButton.AbsolutePosition.X
+            local absoluteY = selectButton.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
             listFrame.Position = UDim2.new(0, absoluteX, 0, absoluteY)
             listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 5) * 34 + 8)
             listFrame.Visible = true
@@ -575,12 +579,16 @@ function NebulaUI:CreateWindow(windowTitle)
         }
     end
 
+    -- ==============================================================
+    -- MULTISELECT CORRIGIDO
+    -- ==============================================================
     local function AddMultiSelect(tabData, labelText, options, defaultOptions, callback)
         labelText = tostring(labelText)
         if type(options) ~= "table" then options = {} end
         local selectedOptions = {}
-        for _, value in ipairs(defaultOptions or {}) do
-            selectedOptions[value] = true
+        -- CORREÇÃO: Converte as opções padrão para string
+        for _, v in ipairs(defaultOptions or {}) do
+            selectedOptions[tostring(v)] = true
         end
         local isOpen = false
         local listFrame = nil
@@ -588,7 +596,9 @@ function NebulaUI:CreateWindow(windowTitle)
 
         local function buildButtonText()
             local names = {}
-            for _, option in ipairs(options) do
+            for _, opt in ipairs(options) do
+                -- CORREÇÃO: Converte opção para string
+                local option = tostring(opt)
                 if selectedOptions[option] then table.insert(names, option) end
             end
             if #names == 0 then return "Nenhum" end
@@ -645,15 +655,17 @@ function NebulaUI:CreateWindow(windowTitle)
 
             if not listFrame then
                 local listHeight = math.min(#options, 5) * 38 + 8
-                listFrame = CreateFrame(WindowFrame, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "MultiSelectList")
+                -- CORREÇÃO: Parent mudou de WindowFrame para ScreenGui
+                listFrame = CreateFrame(ScreenGui, UDim2.new(0, 10, 0, listHeight), UDim2.new(0, 0, 0, 0), Theme.ElementBG, "MultiSelectList")
                 CreateCorner(listFrame, 9)
                 CreateStroke(listFrame, Theme.Border, 1)
-                listFrame.ZIndex = 100
+                listFrame.ZIndex = 100 -- Fica acima da janela
                 CreateListLayout(listFrame, 2)
                 CreatePadding(listFrame, 4, 4, 4, 4)
 
-                for _, option in ipairs(options) do
-                    option = tostring(option)
+                for _, opt in ipairs(options) do
+                    -- CORREÇÃO: Converte opção para string
+                    local option = tostring(opt)
                     local row = CreateFrame(listFrame, UDim2.new(1, 0, 0, 34), nil, Theme.ElementBG, "Row_" .. option)
                     CreateCorner(row, 7)
                     row.ZIndex = 101
@@ -702,8 +714,10 @@ function NebulaUI:CreateWindow(windowTitle)
                         selectButton.Text = buildButtonText()
                         if type(callback) == "function" then
                             local selectedList = {}
-                            for _, opt in ipairs(options) do
-                                if selectedOptions[opt] then table.insert(selectedList, opt) end
+                            for _, optInner in ipairs(options) do
+                                -- CORREÇÃO: Converte opção para string
+                                local optStr = tostring(optInner)
+                                if selectedOptions[optStr] then table.insert(selectedList, optStr) end
                             end
                             callback(selectedList)
                         end
@@ -712,10 +726,9 @@ function NebulaUI:CreateWindow(windowTitle)
             end
 
             syncCheckboxes()
-            WindowFrame.ClipsDescendants = false
-
-            local absoluteX = selectButton.AbsolutePosition.X - WindowFrame.AbsolutePosition.X
-            local absoluteY = selectButton.AbsolutePosition.Y - WindowFrame.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
+            -- CORREÇÃO: Cálculo usa coordenadas absolutas da tela
+            local absoluteX = selectButton.AbsolutePosition.X
+            local absoluteY = selectButton.AbsolutePosition.Y + selectButton.AbsoluteSize.Y + 4
             listFrame.Position = UDim2.new(0, absoluteX, 0, absoluteY)
             listFrame.Size = UDim2.new(0, selectButton.AbsoluteSize.X, 0, math.min(#options, 5) * 38 + 8)
             listFrame.Visible = true
@@ -730,7 +743,9 @@ function NebulaUI:CreateWindow(windowTitle)
         return {
             Get = function()
                 local selectedList = {}
-                for _, option in ipairs(options) do
+                for _, opt in ipairs(options) do
+                    -- CORREÇÃO: Converte opção para string
+                    local option = tostring(opt)
                     if selectedOptions[option] then table.insert(selectedList, option) end
                 end
                 return selectedList
